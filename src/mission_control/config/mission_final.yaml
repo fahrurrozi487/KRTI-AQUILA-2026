@@ -1,0 +1,53 @@
+# Rencana misi BABAK FINAL. Merujuk nama di waypoints.yaml.
+# Sama dgn seleksi tapi WP3 bukan land -- lanjut: WP3 --[line_follow]--> WP4
+# --[Single Gate, kamera depan]--> WP5 (Landing Pad, land).
+#
+# ⚠️ RALAT 2026-09-03: struktur SEBELUMNYA di file ini salah taruh line_follow
+# di WP4->WP5 (dikira line-follower = segmen terakhir sebelum landing). Sudah
+# dikoreksi user: line_follow yang BENAR ada di WP3->WP4 (bukan WP4->WP5), dan
+# WP4->WP5 itu Single Gate + Landing, BUKAN line-follower.
+#
+# ✅ DIKONFIRMASI RESMI OLEH PANITIA (2026-09-03): line-follower BENERAN ADA,
+# di segmen WP3->WP4 (Misi 4, "Pelacakan Jalur Berbasis Visi", pasal 3.3.4.4).
+# Ambiguitas Tabel 1/Gambar 2/pasal 3.3.11.2 (yang sebelumnya kelihatan cuma
+# 4 WP tanpa garis) SUDAH TERJAWAB -- line_follow WP3->WP4 itu YANG BENAR.
+#
+# ⚠️ Yang MASIH belum kelar (bukan soal status resmi lagi, murni data fisik):
+# WP5 & gate_single_final di waypoints.yaml PLACEHOLDER, BELUM disurvei fisik
+# (lih. record_waypoint.py). JANGAN terbang pakai file ini sebelum disurvei.
+#
+# GATE BERLAPIS (DIUPDATE 2026-08-08, sinkron waypoints.yaml/mission_seleksi.yaml):
+# gate_double/gate_triple = gerbang fisik berlapis (double=2 bidang, triple=3
+# bidang) -- gate_layers diaktifkan. Detektornya gate_multi_node.py (bentuk-U,
+# gate_source: 2 di bawah) -- gate_node.py lama gak paham num_openings>1.
+#
+# ⚠️ Leg `yaw` sebelum gate_triple DITAMBAHKAN (2026-08-08) -- geometri
+# WP2->gate_triple butuh belok kiri 90 deg (sama seperti mission_seleksi.yaml),
+# tanpa ini kamera depan gak akan menghadap ke gerbang triple. Sebelumnya
+# file ini gak punya leg yaw sama sekali -- kemungkinan gap lama, bukan
+# perubahan geometri baru.
+#
+# ✅ FIX 2026-09-04: gate_source ditambahkan ke tiap leg traverse -- SEBELUM ini
+# cuma ada 1 gate_topic global (dipilih via arg use_gate_multi utk SELURUH misi),
+# jadi gate_single_final (Single Gate fisik, sama seperti gate_node.py lama)
+# ikut kebaca lewat detektor Double/Triple (gate_multi_node.py) yang topologinya
+# beda total (bentuk-U terbuka bawah) DAN TAK PERNAH divalidasi di data Single
+# Gate. gate_double/gate_triple = gate_source: 2 (Double/Triple, bentuk-U).
+# gate_single_final = default gate_source: 1 (Single Gate, gate_node.py lama --
+# TIDAK DITULIS eksplisit di leg-nya, itu memang defaultnya). Launch WAJIB
+# nyalakan KEDUA node: use_gate:=true (default) use_gate_multi:=true.
+#
+# ✅ 2026-09-15: hold_heading: true ditambahkan ke leg traverse gate_double &
+# gate_triple -- sama seperti mission_seleksi.yaml (lih. komentar di sana):
+# transit menuju gate terbang MUNDUR, tahan heading sekarang, BUKAN muter
+# hadap gate dulu. _traverse() tetap yang urus hadap gate begitu sampai.
+legs:
+  - {wp: wp1,         action: scan,     expected_id: 1}
+  - {wp: gate_double, action: traverse, gate_layers: 2, gate_source: 2, hold_heading: true}
+  - {wp: wp2,         action: drop,     expected_id: 2}
+  - {wp: wp2,         action: yaw,      yaw_deg: 90, direction: left}
+  - {wp: gate_triple, action: traverse, gate_layers: 3, gate_source: 2, hold_heading: true}
+  - {wp: wp3,               action: scan,     expected_id: 3}
+  - {wp: wp4,               action: line_follow}
+  - {wp: gate_single_final, action: traverse, gate_layers: 1}   # gate_source default "1" -- Single Gate
+  - {wp: wp5,               action: land}

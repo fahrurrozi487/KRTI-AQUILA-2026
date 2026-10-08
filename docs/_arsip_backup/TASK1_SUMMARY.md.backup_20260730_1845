@@ -1,0 +1,283 @@
+# Task 1 — Detektor Double/Triple Gate (bentuk-U) — Ringkasan Status
+
+Status: **selesai untuk deteksi geometris (tuning 69.2% / holdout 69.2% / gap 0.0),
+integrasi ke gate_node.py BELUM dikerjakan (task terpisah). Eksplorasi lanjutan
+(30 Jul, sesi ke-2) TIDAK menemukan kombinasi parameter baru yang lolos audit
+visual — parameter final TETAP sama seperti Langkah 3 (lihat §7).**
+Script: `src/mission_control/scripts/gate_multi_detector.py`
+Dataset: `~/catkin_ws/gate/dataset_gate_baru` (520 foto, split tuning=416/holdout=104, seed=42)
+Backup final: `src/mission_control/scripts/gate_multi_detector_FINAL_20260730.py`
+
+---
+
+## 1. Ringkasan Masalah Awal
+
+Gate Double/Triple berbentuk **U**: 2 kaki + palang atas, **TANPA palang bawah**
+(mirip gawang, terbuka di bawah) — berbeda dari Single Gate (`gate_detector.py`,
+di luar scope task ini, tidak disentuh).
+
+Konsekuensi topologi bentuk-U: bukaan gate **tersambung langsung ke background**
+lewat celah bawah. Pendekatan pertama yang dicoba (hole-hierarchy `RETR_CCOMP`,
+mencari bukaan sebagai "lubang tertutup" child contour) **gagal total** karena
+memang tidak ada lubang tertutup untuk dicari — topologi bentuk-U tidak
+menghasilkan child-contour sama sekali.
+
+Fix mendasar: bukaan dicari sebagai **komponen background (mask terbalik)
+terhubung TERBESAR di dalam bounding-box kontur luar**, via
+`cv2.connectedComponentsWithStats`, bukan hierarchy hole.
+
+## 2. Riwayat Perbaikan Teknis (kronologis)
+
+### a. Hole-hierarchy (RETR_CCOMP child) → connectedComponentsWithStats pada mask terbalik
+**Alasan**: dijelaskan di #1 — topologi U tidak punya lubang tertutup untuk
+di-hierarchy-kan. Bukaan dicari sebagai blob background terbesar di dalam bbox
+kontur luar oranye.
+
+### b. Solidity range dilebarkan: 0.30–0.60 → 0.15–0.80
+**Alasan**: gate yang dekat/mengisi-frame punya solidity turun ke ~0.17–0.27
+(kelewat oleh range lama), dan gate dari sudut miring butuh batas atas lebih
+tinggi. Range lama terlalu sempit untuk variasi jarak & sudut kamera nyata.
+
+### c. `_validate_opening()` ditambahkan (Langkah 2)
+**Alasan**: solidity/aspect saja tak cukup membedakan gate sejati dari noise
+(semak/kayu oranye kebetulan berbentuk mirip). Validasi baru menambahkan 3
+syarat: (1) bukaan harus LEBAR & TINGGI cukup (`OPEN_WIDTH_FRAC`/`OPEN_HEIGHT_FRAC`
+≥30% bbox — menolak celah tipis antar-bilah), (2) bukaan harus dekat tepi bawah
+bbox (`OPEN_BOTTOM_MARGIN_FRAC` ≤12% — menolak gate terbalik/ekstrem), (3) kaki
+KIRI & KANAN harus terdeteksi oranye (`LEG_STRIP_FRAC`/`LEG_ORANGE_MIN`). Target
+diganti dari **centroid piksel mentah** (bias ke objek terang/gelap di background)
+menjadi **pusat bounding-box komponen bukaan** (lebih robust, tidak tertarik
+konten background).
+
+Disertai 2 generator sintetis untuk regresi selftest: `_make_blob()` (blob
+tak-berbingkai, meniru noise semak/kayu) dan `_make_one_leg_thin_gap()` (1 kaki
+lebar + celah tipis, meniru kegagalan nyata foto `17_30_17`).
+
+### d. Bug ditemukan: `LEG_ORANGE_MIN` terlalu ketat untuk gate jarak-dekat (Langkah 3, 30 Jul 2026)
+**Diagnosis**: audit visual foto kunci `17_31_45` (gate asli, jelas terlihat)
+menunjukkan **0 kandidat terdeteksi** — bukan cuma "target salah ke motor"
+seperti bug lama, tapi gate sama sekali tidak lolos. Ditelusuri manual: kontur
+luar & bukaan lolos semua filter lain, tapi kaki kanan cuma 28.3% oranye di
+strip vertikal (`LEG_STRIP_FRAC=0.20`), di bawah ambang `LEG_ORANGE_MIN=0.35`.
+Root cause: foto jarak-dekat FOV-lebar membuat kaki gate tampak terdistorsi
+perspektif (tidak murni vertikal), sehingga strip vertikal lurus 20% lebar bbox
+banyak berisi non-kaki di sebagian tinggi kaki.
+
+**Audit dampak** (sebelum memilih fix): dari 416 foto `tuning_set`, **186 foto
+0-gate**, dan dari situ **164 foto (39.4%)** punya kandidat area-besar (kelas
+gate asli, bukan noise kecil) yang gagal MURNI di leg-check — **60 foto (14.4%
+dari total tuning_set)** menunjukkan pola near-miss persis (satu sisi kaki
+sudah lolos, sisi lain di rentang 0.25–0.35). Kesimpulan: bug ini **bukan kasus
+langka**, berdampak luas ke banyak foto gate asli yang selama ini danggap
+"gagal wajar".
+
+**Fix — sweep parameter empiris** (bukan tebak manual): grid-search
+`LEG_STRIP_FRAC ∈ {0.20,0.25,0.30}` × `LEG_ORANGE_MIN ∈ {0.35,0.30,0.28,0.25}`
+(12 kombinasi), diuji terhadap 4 pagar keselamatan:
+
+| strip | legmin | tuning% | holdout% | gap | lolos pagar? | 17_31_45 rescue? |
+|---|---|---|---|---|---|---|
+| 0.20 | 0.35 (baseline) | 55.3 | 54.8 | 0.5 | ya | tidak |
+| 0.20 | 0.30 | 63.0 | 61.5 | 1.4 | gap melebar | tidak |
+| **0.20** | **0.28** | 65.4 | 65.4 | 0.0 | **ya** | **ya** |
+| 0.20 | 0.25 | 70.0 | 67.3 | 2.6 | gap melebar | ya |
+| 0.25 | 0.35 | 46.6 | 47.1 | 0.5 | ya | tidak |
+| 0.25 | 0.30 | 63.7 | 61.5 | 2.2 | gap melebar | ya |
+| 0.25 | 0.28 | 66.6 | 64.4 | 2.2 | gap melebar | ya |
+| 0.25 | 0.25 | 72.4 | 70.2 | 2.2 | gap melebar | ya |
+| 0.30 | 0.35 | 33.9 | 32.7 | 1.2 | gap melebar | ya |
+| 0.30 | 0.30 | 51.7 | 52.9 | 1.2 | gap melebar | ya |
+| 0.30 | 0.28 | 58.4 | 61.5 | 3.1 | gap melebar | ya |
+| **0.30** | **0.25** | **69.2** | **69.2** | **0.0** | **ya** | **ya** |
+
+Hanya 2 kombinasi lolos semua 4 pagar literal (3 negatif selftest tetap 0-gate,
+foto noise acuan `17_30_06`/`17_30_12` varian `(4)` tetap 0-gate, `17_31_45`
+ter-rescue, gap tidak melebar dari 0.5): **(0.20, 0.28)** dan **(0.30, 0.25)**.
+
+## 3. Kombinasi Parameter Final & Alasan Pemilihan
+
+**Dipilih: `LEG_STRIP_FRAC=0.30`, `LEG_ORANGE_MIN=0.25`** — rescue rate
+tertinggi (69.2%/69.2%/gap 0.0) di antara kombinasi yang lolos semua 4 pagar
+keselamatan yang disepakati, sesuai aturan keputusan eksplisit ("pilih rescue
+rate tertinggi yang lolos semua pagar").
+
+**Trade-off yang ditemukan lewat pengecekan tambahan** (di luar 4 pagar
+wajib, dilakukan sebagai due-diligence ekstra sebelum commit ke kombinasi
+ini): saat SEMUA varian foto (bukan cuma file acuan resmi) dari keluarga
+noise `17_30_06`/`17_30_12` (10 foto total) dan keluarga gate `17_31_45`
+(5 foto total) dicek —
+
+| kombinasi | false-positive noise-family | rescue gate-family |
+|---|---|---|
+| (0.20, 0.28) | 1/10 | 3/5 |
+| **(0.30, 0.25) — DIPILIH** | 3/10 | 4/5 |
+
+Ada juga kombinasi (0.25, 0.30) dengan 0/10 false-positive & 4/5 rescue — tapi
+**didiskualifikasi** karena melanggar pagar gap (2.2 poin, melebar dari
+baseline 0.5 → indikasi overfitting).
+
+Kombinasi `(0.30, 0.25)` diterima dengan trade-off ini **secara sadar dan
+terdokumentasi** (lihat #5), bukan dipilih karena mengabaikan risikonya.
+
+## 4. Hasil Akhir & Perbandingan Semua Iterasi
+
+| Iterasi | Parameter leg-check | tuning% | holdout% | gap | Catatan metrik |
+|---|---|---|---|---|---|
+| Lama (pra `_validate_opening`, "iterasi 6") | — (belum ada leg-check) | — | — | — | ~46% **presisi-adjusted** (metrik BEDA: hitung target-salah sbg gagal, bukan cuma "0 kandidat") |
+| Langkah 1 (baseline sesi ini) | strip=0.20, legmin=0.35 | 55.3 | 54.8 | 0.5 | raw detection rate |
+| **Langkah 3 (FINAL)** | **strip=0.30, legmin=0.25** | **69.2** | **69.2** | **0.0** | raw detection rate |
+
+**Kenaikan vs baseline Langkah 1**: +13.9 poin tuning, +14.4 poin holdout, gap
+mengecil (0.5→0.0, bukan melebar).
+
+**Peringatan metrik**: angka 46% lama dan 55.3%/69.2% sekarang **tidak
+apple-to-apple** — 46% menghukum kasus "target salah" sebagai gagal, sedangkan
+raw detection rate di sini hanya mengukur "ada ≥1 kandidat lolos validasi
+bentuk". Karena `_validate_opening()` sekarang jauh lebih ketat dari iterasi
+lama, kandidat yang lolos kemungkinan besar juga presisi — tapi ini **belum
+diverifikasi manual foto-per-foto**, hanya diverifikasi utk 4 sampel kunci
+(lihat #4b).
+
+### 4b. Audit Visual 4 Sampel Kunci (setelah parameter final)
+
+| Foto | Kandidat | Target | Status |
+|---|---|---|---|
+| `17_30_06_Pro (4)` | 0 | — | tetap benar ditolak |
+| `17_30_12_Pro (4)` | 0 | — | tetap benar ditolak |
+| `17_31_45_Pro` | 3 (kandidat #0 area=250208 = gate asli, prioritas tertinggi krn diurut area DESC; 2 kandidat kecil area 9496 & 2176 = noise level rendah) | kandidat #0 di pixel (1184,656) = **pusat bounding-box bukaan asli** | **berhasil di-rescue** — target sekarang di pusat bukaan geometris, bukan bias-centroid seperti bug lama (motor di background hanya kebetulan berdekatan dgn titik pusat bukaan, bukan tanda algoritma "tertarik" ke motor) |
+| `17_30_17_Pro (7)` | 1 (+1 kandidat kecil baru di tembok, area sangat kecil) | tetap di papan kayu (tidak berubah dari sebelumnya) | **tetap ditolak sesuai keputusan user** — dianggap bukan gate asli (prop/objek lain kebetulan oranye), prioritas rendah |
+
+## 5. Keterbatasan yang Diketahui
+
+- **False-positive pada 3/10 foto saudara-frame dari keluarga noise
+  `17_30_06`/`17_30_12`** (bukan varian acuan resmi) — trade-off yang diterima
+  sadar demi rescue rate gate asli jarak-dekat (lihat #3). Kalau risiko ini
+  terbukti signifikan di lapangan, kombinasi `(0.20, 0.28)` adalah alternatif
+  lebih konservatif (1/10 false-positive, tapi rescue rate lebih rendah).
+- **Foto `17_30_17` tetap ambigu** — objek kanan di foto ini lolos validasi
+  bentuk (kaki kiri-kanan oranye + bukaan lebar), tapi menurut penilaian user
+  ini KEMUNGKINAN BESAR bukan gate asli (prop/rak lain di lokasi latihan).
+  Belum ada mekanisme di kode untuk membedakan "gate asli" vs "objek oranye
+  lain berbentuk mirip" selain heuristik solidity/aspect/leg-check yang sudah
+  ada — kasus ini lolos semua heuristik itu.
+- **Metrik akurasi (raw detection rate) belum sepenuhnya diverifikasi sebagai
+  "presisi" (target benar)** — hanya 4 sampel kunci yang diaudit visual manual.
+  230-288 foto lain yang "terdeteksi" belum dicek satu-per-satu apakah target-
+  nya tepat di pusat bukaan gate asli.
+- **`REL_AREA_FRAC` masih nonaktif** (0.0) — belum dicoba diaktifkan sebagai
+  mitigasi tambahan utk menekan false-positive keluarga noise (kandidat
+  perbaikan lanjutan kalau limitasi pertama di atas jadi masalah nyata).
+- **Opsi (c) — leg-check toleran skew/rotasi per-baris** tidak jadi diperlukan
+  karena opsi (a)/(b) (sweep grid sederhana) sudah cukup lolos semua pagar
+  keselamatan. Tetap tercatat sebagai opsi cadangan kalau iterasi berikutnya
+  butuh presisi lebih tinggi tanpa trade-off false-positive di atas.
+
+## 6. Langkah Selanjutnya yang Direkomendasikan
+
+1. **Integrasi ke `gate_node.py`** — task terpisah (Task 2), **belum
+   dikerjakan** di sesi ini. `gate_multi_detector.py` saat ini berdiri sendiri
+   (bisa dijalankan `--selftest`/`--image`/`--batch-test` tanpa ROS), belum
+   dipanggil dari node ROS manapun.
+2. Kalau butuh menekan false-positive keluarga noise (limitasi #5 pertama)
+   lebih lanjut: coba aktifkan `REL_AREA_FRAC` (mis. 0.15) atau eksplorasi
+   opsi (c) leg-check toleran-skew.
+3. Verifikasi manual foto-per-foto (bukan cuma 4 sampel kunci) kalau perlu
+   klaim akurasi "presisi" yang lebih kuat, bukan cuma raw detection rate.
+
+## 7. Eksplorasi Lanjutan (Sesi 30 Jul, ke-2) — HASIL NIHIL, terdokumentasi penuh
+
+Otorisasi penuh diberikan untuk memaksimalkan akurasi lebih lanjut, dengan
+syarat keras: setiap keputusan harus berbasis data, dan WAJIB audit visual
+sebelum klaim perbaikan. Hasil: **tidak ada kombinasi baru yang bertahan
+setelah audit visual** — parameter final TETAP sama seperti Langkah 3
+(§3). Ini dilaporkan apa adanya karena hasil negatif tetap merupakan
+temuan yang valid & berharga (bukan kegagalan proses).
+
+### 7a. Breakdown komposisi kegagalan (520 foto penuh, param Langkah 3 aktif)
+
+| Kategori | Jumlah | % dari 520 |
+|---|---|---|
+| DETECTED | 360 | 69.2% |
+| leg_clear_miss (worst-side <0.15) | 70 | 13.5% |
+| leg_near_miss (worst-side 0.15-0.25) | 45 | 8.7% |
+| aspect_reject | 26 | 5.0% |
+| solidity_reject | 16 | 3.1% |
+| opening_tak_nyentuh_bawah | 3 | 0.6% |
+
+Leg-check mendominasi (115/160 = 71.9% dari SEMUA kegagalan). Histogram
+distribusi kandidat yg gagal aspect (n=37, semua di rentang 0.28-0.40,
+median 0.359 — SEMUA di bawah `ASPECT_LO=0.40`, tidak ada yg di atas
+`ASPECT_HI`) dan solidity (n=17, semua di rentang 0.826-0.935, median
+0.908 — SEMUA di atas `SOLIDITY_HI=0.80`, tidak ada yg di bawah
+`SOLIDITY_LO`) menunjukkan pola "tebing rapat", bukan ekor panjang acak —
+secara data terlihat seperti kandidat layak dicoba dilebarkan.
+
+### 7b. Sweep yang diuji & hasilnya (semua diverifikasi thd 4 pagar keselamatan)
+
+**Melebarkan `LEG_STRIP_FRAC` lebih jauh (0.35, 0.40) — DITOLAK, data
+konkret:** akurasi justru ANJLOK (58.7%/62.5% pada strip=0.35, 52.4%/50.0%
+pada strip=0.40 — dibanding 69.2%/69.2% di strip=0.30), DAN false-positive
+keluarga noise naik ke 5-6/10 (dari 3/10). strip=0.30 terbukti sudah
+optimal lokal, bukan bisa dinaikkan lagi.
+
+**Menurunkan `LEG_ORANGE_MIN` lebih jauh (ke 0.20) — DITOLAK, data
+konkret:** akurasi terlihat menggiurkan di atas kertas (holdout sampai
+83.7%), TAPI **false-positive keluarga noise SELALU melonjak ke 5-8/10**
+(vs batas keras 3/10) di SEMUA kombinasi strip/aspect/solidity yg dicoba
+bersamanya — tanpa kecuali. Kesimpulan: `LEG_ORANGE_MIN=0.25` sudah di
+titik plafon praktis; tidak bisa diturunkan lebih jauh tanpa melanggar
+pagar #4.
+
+**Menurunkan `ASPECT_LO` (ke 0.35/0.30/0.27) — DITOLAK, data konkret:**
+akurasi naik di atas kertas (holdout sampai 75.0% pada aspect_lo=0.27),
+TAPI false-positive keluarga noise NAIK KONSISTEN dari 3/10 ke 5/10 di
+SEMUA nilai aspect_lo<0.40 yg dicoba (independen dari solidity_hi). Harus
+tetap di 0.40.
+
+**Menaikkan `SOLIDITY_HI` (0.80 → 0.90) — LOLOS 4 PAGAR NUMERIK, TAPI
+GUGUR DI AUDIT VISUAL (WAJIB):** kombinasi ini (bersama aspect_lo=0.40,
+strip=0.30, legmin=0.25 tetap) menghasilkan tuning=70.0%/holdout=71.2%/
+gap=1.2/fp_noise=3 — lolos SEMUA angka pagar. Tapi audit visual terhadap
+**5 foto yang "baru terdeteksi"** (dibandingkan dgn param Langkah 3)
+mengungkap:
+
+| Foto | Kandidat yg lolos | Verdict visual |
+|---|---|---|
+| `17_29_44 (5)` | area besar, tapi objek = "prop" kain-oranye+rak (identik kategori 17_30_17) | **AMBIGU** — sama seperti 17_30_17, tidak pasti gate asli |
+| `17_29_44 (6)` | sama seperti di atas (frame burst berdekatan) | **AMBIGU** |
+| `17_30_13 (2)` | kotak KECIL (area 2410) di bangku kayu background — gate asli (area 223542) di foto yg SAMA tetap TIDAK lolos (`left_frac=0.2485`, hanya 0.0015 di bawah ambang 0.25!) | **FALSE POSITIVE** — target ke bangku, bukan gate |
+| `17_31_51 (3)` | kotak KECIL (area 1600) di tanah/rumput — gate asli besar di background sama sekali tidak jadi kandidat | **FALSE POSITIVE** |
+| `17_31_52 (4)` | kotak KECIL (area 2251) di tanah/rumput, pola identik dgn di atas | **FALSE POSITIVE** |
+
+**Kesimpulan: 0 dari 5 foto "rescued" adalah gate asli yang bersih
+terverifikasi.** Kenaikan angka 69.2%→71.2% adalah **ilusi statistik** —
+raw detection rate naik karena objek KECIL YANG SALAH ikut lolos validasi
+bentuk (solidity 0.826-0.935 ternyata juga cocok utk kerikil/bangku kecil
+berbentuk kebetulan U), BUKAN karena gate asli makin banyak terdeteksi.
+**`SOLIDITY_HI=0.90` DITOLAK / TIDAK diadopsi** — file `gate_multi_detector.py`
+TIDAK diubah dari state Langkah 3.
+
+### 7c. Kesimpulan akhir eksplorasi
+
+Parameter Langkah 3 (`ASPECT_LO=0.40, ASPECT_HI=2.50, SOLIDITY_LO=0.15,
+SOLIDITY_HI=0.80, LEG_STRIP_FRAC=0.30, LEG_ORANGE_MIN=0.25`) **tetap
+final**. Empat arah eksplorasi berbasis data (strip lebih lebar, legmin
+lebih rendah, aspect_lo lebih rendah, solidity_hi lebih tinggi) SEMUA
+gagal — tiga karena melanggar pagar numerik (gap/false-positive), satu
+(solidity_hi) karena gagal audit visual meski lolos pagar numerik. Ini
+menunjukkan **69.2%/69.2%/gap 0.0 (raw detection rate) adalah plafon
+praktis** untuk pendekatan threshold-tuning sederhana (opsi a/b) pada
+dataset ini — perbaikan lebih lanjut kemungkinan besar butuh pendekatan
+berbeda (opsi c: leg-check toleran skew per-baris, atau fitur baru sama
+sekali), bukan sekadar geser angka ambang lagi.
+
+**Contoh margin near-miss paling ekstrem yang ditemukan**: foto
+`17_30_13 (2)` — gate asli dgn `left_frac=0.2485` vs ambang `0.25`,
+meleset hanya **0.0015** (kurang dari 1 piksel dari ~250px lebar strip).
+Ini mengilustrasikan betapa dekatnya batas saat ini ke titik optimal
+teoretis — tapi tetap tidak bisa digeser tanpa membuka pintu false-positive
+di foto lain (lihat sweep legmin=0.20 di atas).
+
+Tidak ada backup baru dibuat sesi ini (`gate_multi_detector_FINAL_v2_*`)
+karena **tidak ada perubahan kode** — file identik dengan
+`gate_multi_detector_FINAL_20260730.py` dari sesi sebelumnya.

@@ -1,0 +1,23 @@
+<launch>
+    <!-- C310 gate (depan). Default /dev/video0, 1280x720 MJPEG.
+         Publish: /camera_front/image_raw
+         MJPEG di 720p: bandwidth USB lebih hemat daripada YUYV.
+         Log "No accelerated colorspace conversion yuv422p->rgb24" = WARNING
+         normal di Jetson (konversi di CPU), BUKAN error fatal. Stream tetap jalan. -->
+    <arg name="video_device"  default="/dev/video0" />
+    <arg name="image_width"   default="640" />
+    <arg name="image_height"  default="480" />
+    <!-- mjpeg = 720p stabil; yuyv hanya utk 640x480 (default lama) -->
+    <arg name="pixel_format"  default="yuyv" />
+    <arg name="frame_id"      default="camera_front" />
+
+    <node name="camera_front" pkg="usb_cam" type="usb_cam_node" output="screen">
+        <param name="video_device"     value="$(arg video_device)" />
+        <param name="image_width"      value="$(arg image_width)" />
+        <param name="image_height"     value="$(arg image_height)" />
+        <param name="pixel_format"     value="$(arg pixel_format)" />
+        <param name="color_format"     value="yuv422p" />
+        <param name="camera_frame_id"  value="$(arg frame_id)" />
+        <param name="io_method"        value="mmap" />
+    </node>
+</launch>

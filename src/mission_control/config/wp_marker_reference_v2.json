@@ -1,0 +1,175 @@
+{
+  "1": {
+    "pattern": [
+      [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        1,
+        0,
+        0,
+        1
+      ],
+      [
+        0,
+        0,
+        1,
+        1,
+        0,
+        1
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0
+      ]
+    ],
+    "reliable": false,
+    "agreement": 0.9028,
+    "n": 22
+  },
+  "3": {
+    "pattern": [
+      [
+        0,
+        0,
+        1,
+        1,
+        1,
+        0
+      ],
+      [
+        1,
+        0,
+        0,
+        1,
+        0,
+        1
+      ],
+      [
+        1,
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      [
+        1,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        1,
+        1,
+        0,
+        1,
+        0
+      ],
+      [
+        1,
+        1,
+        0,
+        0,
+        1,
+        1
+      ]
+    ],
+    "reliable": true,
+    "agreement": 0.9326,
+    "n": 185
+  },
+  "4": {
+    "pattern": [
+      [
+        1,
+        0,
+        1,
+        0,
+        1,
+        1
+      ],
+      [
+        0,
+        0,
+        1,
+        0,
+        0,
+        1
+      ],
+      [
+        1,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      [
+        0,
+        1,
+        0,
+        1,
+        0,
+        1
+      ],
+      [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+      ]
+    ],
+    "reliable": true,
+    "agreement": 0.9463,
+    "n": 106
+  },
+  "_meta": {
+    "source": "dataset_arucode/Aruco_yang_baru (2026-08-07 field dataset, ~4000 foto)",
+    "pipeline": "wp_decode_v2.py (tarp-anchored mask + protrusion-split + rotation-search match)",
+    "note": "WP2 TIDAK ada di reference ini -- perannya presence-detection (red box = drop trigger), bukan ID-decode. Lihat detect_wp2_presence() (unchanged, 99.9% akurat di 912 foto wp2_in_box).",
+    "wp2_approach_pattern_reliable": false,
+    "wp2_approach_agreement": 0.8967,
+    "wp2_approach_n": 25
+  }
+}

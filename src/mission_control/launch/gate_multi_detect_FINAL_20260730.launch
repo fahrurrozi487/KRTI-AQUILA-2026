@@ -1,0 +1,13 @@
+<launch>
+    <!-- Task 2: node ROS utk gate_multi_detector.py (Double/Triple Gate, bentuk-U).
+         TERPISAH dari gate_detect.launch (Single Gate, gate_node.py lama, tak
+         disentuh). Topic publish: /gate_multi_node/gate (beda dari
+         /gate_node/gate lama supaya tak bentrok kalau dijalankan bersamaan). -->
+    <arg name="image_topic"   default="/camera_front/image_raw" />  <!-- dari camera_front.launch -->
+    <arg name="publish_debug" default="true" />
+
+    <node pkg="mission_control" type="gate_multi_node.py" name="gate_multi_node" output="screen">
+        <param name="image_topic"   value="$(arg image_topic)" />
+        <param name="publish_debug" value="$(arg publish_debug)" />
+    </node>
+</launch>

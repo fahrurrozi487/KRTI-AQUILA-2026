@@ -1,0 +1,8 @@
+<launch>
+  <env name="ROSCONSOLE_CONFIG_FILE" value="/home/jetson/rosconsole.config" />
+
+  <arg name="fcu_url" default="/dev/ttyACM0:921600" />
+  <include file="$(find mavros)/launch/apm.launch">
+    <arg name="fcu_url" value="$(arg fcu_url)" />
+  </include>
+</launch>

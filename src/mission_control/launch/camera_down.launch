@@ -1,0 +1,36 @@
+<launch>
+    <!-- USB cam bawah (ArUco). Default: Logitech C920 = /dev/video1, 640x480 YUYV.
+         Publish: /camera_down/image_raw
+         ponytail: sempat dicoba 1280x720 mjpeg (720p) buat nambah piksel marker
+         di jarak jauh, tapi Jetson gak kuat -> wp_marker_node cuma 1.8Hz (target
+         5Hz), CPU 105%. Balik ke 640x480 dulu; naikkan lagi kalau tes fisik
+         jarak jauh beneran butuh & CPU/model decode-nya udah dioptimalkan.
+
+         2026-08-09: exposure kamera masih AUTO (default, TIDAK diubah di sini;
+         65% kegagalan WP1/44% WP3 itu reason='low_quality', dicoba software
+         (gamma/CLAHE) tapi gagal/riskan, lih. project_task3_status.md). Exposure
+         manual v4l2 TERBUKTI bisa naikin brightness 2x (tes indoor: 111->233
+         mean grayscale), TAPI nilai yg pas beda jauh tergantung cahaya lapangan
+         asli (siang/mendung/teduh); gak bisa dihardcode dari sini tanpa
+         validasi fisik. Tool kalibrasi terpisah (POLA SAMA kayak
+         calibrate_align_sign.py; standalone, TIDAK auto-wired ke launch ini):
+         `scripts/set_camera_exposure.sh /dev/video1 <exposure_absolute>`
+         (jalan MANUAL sesudah camera_down.launch nyala, pas kalibrasi di lokasi
+         lomba; override exposure_auto jadi manual dgn nilai yg ditentukan saat
+         itu, BUKAN preset tetap). -->
+    <arg name="video_device"  default="/dev/video1" />
+    <arg name="image_width"   default="640" />
+    <arg name="image_height"  default="480" />
+    <arg name="pixel_format"  default="yuyv" />
+    <arg name="frame_id"      default="camera_down" />
+
+    <node name="camera_down" pkg="usb_cam" type="usb_cam_node" output="screen">
+        <param name="video_device"     value="$(arg video_device)" />
+        <param name="image_width"      value="$(arg image_width)" />
+        <param name="image_height"     value="$(arg image_height)" />
+        <param name="pixel_format"     value="$(arg pixel_format)" />
+        <param name="color_format"     value="yuv422p" />
+        <param name="camera_frame_id"  value="$(arg frame_id)" />
+        <param name="io_method"        value="mmap" />
+    </node>
+</launch>

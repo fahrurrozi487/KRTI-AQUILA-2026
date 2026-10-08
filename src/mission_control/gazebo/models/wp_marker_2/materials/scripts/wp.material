@@ -1,0 +1,14 @@
+material WpMarker/wp2
+{
+  technique
+  {
+    pass
+    {
+      lighting off
+      texture_unit
+      {
+        texture wp2.png
+      }
+    }
+  }
+}

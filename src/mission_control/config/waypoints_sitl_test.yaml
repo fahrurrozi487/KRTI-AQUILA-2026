@@ -1,0 +1,38 @@
+gate_double:
+  qw: 1.0
+  qz: 0.0
+  x: 8.0
+  y: 0.0
+  z: 1.0  # ponytail: override khusus integration test SITL, asli(z=0.0) bikin drone
+          # gak pernah reach goto (target ground level sambil terbang) -> timeout/abort.
+          # waypoints.yaml ASLI (misi lapangan) TIDAK diubah -- lihat file itu utk angka final.
+gate_triple:
+  qw: 1.0
+  qz: 0.0
+  x: 15.0
+  y: 0.0
+  z: 2.0
+wp1:
+  qw: 0.0324
+  qz: -0.9995
+  x: -0.623
+  y: -0.065
+  z: 1.0
+wp2:
+  qw: 0.0324
+  qz: -0.9995
+  x: -1.847
+  y: -0.11
+  z: 1.0
+wp3:
+  qw: 0.0324
+  qz: -0.9995
+  x: -1.851
+  y: -2.647
+  z: 1.0
+wp4:
+  qw: 1.0
+  qz: 0.0
+  x: 22.0
+  y: 0.0
+  z: 2.0

@@ -1,0 +1,13 @@
+# GUIDED: scan ArUco + align drop + land WP3 (tanpa gate/yaw).
+#
+# Pilot: hover di/near WP1, switch GUIDED, lalu launch (do_takeoff:=false).
+# Atau do_takeoff:=true dari darat (GUIDED takeoff oleh node).
+#
+# Launch:
+#   roslaunch mission_control phaseD_mission.launch \
+#     mission:=aruco_drop do_takeoff:=false sim_markers:=false \
+#     use_gate:=false use_aruco:=true aruco_invert:=true
+legs:
+  - {wp: wp1, action: scan, expected_id: 1}
+  - {wp: wp2, action: drop, expected_id: 2}
+  - {wp: wp3, action: land, expected_id: 3}

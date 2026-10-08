@@ -1,0 +1,7 @@
+# Update: VISO_POS_X diubah dari 0.13 (hasil ukur usang/salah) ke 0.06
+#   (hasil ukur ulang, T265 6cm di depan CoG). VISO_POS_Y/Z belum diukur,
+#   masih asumsi 0 — perlu verifikasi fisik terpisah kalau T265 tidak
+#   tepat di garis tengah horizontal / sejajar tinggi CoG.
+VISO_POS_X,0.06
+VISO_POS_Y,0
+VISO_POS_Z,0

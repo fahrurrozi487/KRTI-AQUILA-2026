@@ -1,0 +1,23 @@
+<launch>
+    <!-- Dashboard web (Flask MJPEG); ganti VNC. Jalanin BARENGAN kamera +
+         mavros + mission (bukan pengganti, cuma nambah monitoring). Buka
+         http://<ip-jetson>:5000/ dari laptop (1 jaringan/hotspot). -->
+    <arg name="port"              default="5000" />
+    <arg name="down_topic"        default="/camera_down/image_raw" />
+    <arg name="front_topic"       default="/camera_front/image_raw" />
+    <arg name="status_topic"      default="/mission_d/status" />
+    <!-- 2026-09-03: "rangefinder_pub" (bukan "_sub"); terbukti live di FC asli. -->
+    <arg name="rangefinder_topic" default="/mavros/distance_sensor/rangefinder_pub" />
+    <arg name="rel_alt_topic" default="/mavros/global_position/rel_alt" />
+    <arg name="jpeg_quality"      default="70" />
+
+    <node pkg="mission_control" type="web_dashboard.py" name="web_dashboard" output="screen">
+        <param name="port"              value="$(arg port)" />
+        <param name="down_topic"        value="$(arg down_topic)" />
+        <param name="front_topic"       value="$(arg front_topic)" />
+        <param name="status_topic"      value="$(arg status_topic)" />
+        <param name="rangefinder_topic" value="$(arg rangefinder_topic)" />
+        <param name="rel_alt_topic" value="$(arg rel_alt_topic)" />
+        <param name="jpeg_quality"      value="$(arg jpeg_quality)" />
+    </node>
+</launch>

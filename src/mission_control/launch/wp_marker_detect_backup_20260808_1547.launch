@@ -1,0 +1,41 @@
+<launch>
+  <arg name="image_topic" default="/camera_down/image_raw"/>
+
+  <!-- WP marker detection node (WP1/WP3/WP4 ID decode + WP2 presence) -->
+  <!-- v2 (2026-08-07): reference dibangun dari dataset lapangan baru (Aruco_yang_baru,
+       ~4000 foto) via wp_decode_v2.py; lih. docstring wp_decode_v2.py & wp_marker_node.py.
+       WP2 TIDAK ada di reference ID-decode ini (perannya presence/red-box, bukan ID). -->
+  <node name="wp_marker_node" pkg="mission_control" type="wp_marker_node.py"
+        output="screen" respawn="true" respawn_delay="3">
+
+    <!-- Camera source: kamera bawah untuk semua WP -->
+    <param name="image_topic"      value="$(arg image_topic)"/>
+
+    <!-- Reference patterns JSON v2 (final, jangan diubah) -->
+    <param name="json_path"
+           value="$(find mission_control)/config/wp_marker_reference_v2.json"/>
+
+    <!-- Hamming threshold: argmin (rotation-search 4 arah x tiap referensi) dipilih,
+         threshold jadi safety-net. Separasi minimum antar-WP di reference v2 = 17/36
+         sel (WP1 vs WP4), JAUH lebih aman dari reference v1 lama (9/36). Threshold=7
+         divalidasi full-dataset: presisi 95.7-100% saat reason='ok' (WP1/WP3/WP4). -->
+    <param name="hamming_threshold" value="7"/>
+
+    <!-- Margin min ke kandidat ID kedua-terdekat. WP1/WP4 cuma beda 9 sel,
+         jadi bacaan noisy bisa lebih dekat ke tetangga daripada marker asli.
+         Di bawah margin ini -> reason='ambiguous', bukan ID yang salah. -->
+    <param name="ambiguous_margin" value="3"/>
+
+    <!-- WP2: area blob non-orange & non-red yang dianggap marker present.
+         Default ~3000px² sesuai kamera 640x480 dari ketinggian menengah.
+         Rumus: T = (marker_side_m / altitude_m)^2 * 640*480 * fill_factor
+         Sesuaikan saat test lapangan (T265 scale error ~20-30%). -->
+    <param name="wp2_min_area_px"  value="3000"/>
+
+    <!-- Throttle: 5Hz cukup untuk konfirmasi keberadaan (bukan tracking) -->
+    <param name="throttle_hz"      value="5.0"/>
+
+    <!-- Debug image publish (aktif untuk testing; nonaktifkan di produksi bila butuh bandwidth) -->
+    <param name="publish_debug"    value="true"/>
+  </node>
+</launch>

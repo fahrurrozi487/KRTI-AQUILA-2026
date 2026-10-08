@@ -1,0 +1,694 @@
+{
+  "_meta": {
+    "warning": "Pattern per 2026-08-05 (v3, trimmed-vote) dibangun dari dataset_arucode/wp{1,3,4}/ (dataset kanonik foto lapangan, BUKAN file digital tunggal aruco_bersih). Per-foto quality gate (tail terdeteksi + aspect ketat) + buang 20% outlier terjauh dari modal awal, vote ulang dari sisanya. Agreement: WP1 0.671(orig)/0.723(v3), WP3 0.743/0.770, WP4 0.738/0.791. Separasi WP1-WP4 naik dari 9/36 (orig) jadi 12/36 (v3). v2 (aruco_bersih) DIPERTAHANKAN sbg old_pattern_from_aruco_bersih_v2 tapi TIDAK PERNAH lolos live-test. v3 BELUM live-tested -- WAJIB verifikasi fisik WP1 sebelum lomba (riwayat: WP1 physical sheet berulang kali kebaca sbg WP4 di live test).",
+    "grid_size": 6,
+    "convention": "bits[r][c] = 1 artinya sel (baris r, kolom c) HITAM. Orientasi: ekor di atas (N), kanonik.",
+    "generated_from": "dataset_arucode/wp{1,3,4}/*.jpg, trimmed-vote (quality-gate + outlier-trim 20%) via wp_reference_from_samples.py (2026-08-05 v3)",
+    "fixes_applied": [
+      "s>40 orange mask: toleran overexposed",
+      "_body_yspan: grid dipatok ke badan saja, bukan ekor+badan",
+      "minAreaRect corners: stabil vs approxPolyDP",
+      "decode_grid red exclusion: pixel merah (nampan WP2) diputihkan sebelum Otsu",
+      "tail detection red exclusion: pixel merah dikeluarkan dari body sebelum detect_tail_side (tray tidak menutupi protrusi ekor kertas)"
+    ],
+    "em_status": "REVERTED \u2014 em_aggregate() ada di kode tapi run() kembali ke aggregate(). Alasan: sirkularitas (rotasi dipilih berdasarkan cocok-ke-modal yg dihitung dari rotasi tsb). Perlu verifikasi fisik overlay posisi ekor vs rotasi EM sebelum deployment. Hasil sebelum revert: WP1 0.671->0.721, WP2 0.714->0.772, WP3 0.743->0.803, WP4 0.738->0.805 \u2014 angka-angka ini TIDAK VALID sampai circularity terbukti bukan issue.",
+    "wp2_strategy": {
+      "decision": "PRESENCE_DETECTION",
+      "rationale": "WP2 adalah dropping point \u2014 posisi presisi sudah dari koordinat T265/GPS di waypoints.yaml. Vision hanya perlu konfirmasi keberadaan marker (large non-orange blob), bukan decode ID grid presisi. Decode ID dicoba (LANGKAH 1-3) tapi agreement 0.714 tetap reliable=false setelah semua fix algoritmik habis. Presence detection lebih robust dan sesuai fungsi WP2.",
+      "implementation_note": "Belum diimplementasikan di node mission_control \u2014 task sesi berikutnya. Rekomendasi: deteksi blob non-orange >= area_threshold di frame kamera bawah sebagai konfirmasi WP2 present.",
+      "grid_pattern_status": "RESEARCH_ARTIFACT \u2014 pattern di bawah adalah hasil investigasi, TIDAK dipakai untuk runtime ID decoding di lomba."
+    },
+    "hamming_distances": {
+      "1_2": {
+        "diff_cells": 12,
+        "total_cells": 36,
+        "pct": 33.3,
+        "note": "WP2 pakai presence detection, bukan ID decode \u2014 jarak ini informasional saja"
+      },
+      "1_3": {
+        "diff_cells": 12,
+        "total_cells": 36,
+        "pct": 33.3
+      },
+      "1_4": {
+        "diff_cells": 9,
+        "total_cells": 36,
+        "pct": 25.0
+      },
+      "2_3": {
+        "diff_cells": 10,
+        "total_cells": 36,
+        "pct": 27.8,
+        "note": "informasional"
+      },
+      "2_4": {
+        "diff_cells": 9,
+        "total_cells": 36,
+        "pct": 25.0,
+        "note": "informasional"
+      },
+      "3_4": {
+        "diff_cells": 13,
+        "total_cells": 36,
+        "pct": 36.1
+      }
+    },
+    "hamming_concern": "WP1 vs WP4 = 25% (9 sel). User konfirmasi WP1 != WP4 fisik \u2014 ini ARTEFAK dari WP1 agreement rendah (0.671), BUKAN kemiripan fisik asli. Prioritas verifikasi fisik sebelum lomba.",
+    "wp2_hamming_note": "WP2 vs WP3=27.8%, WP2 vs WP4=25.0% \u2014 tidak relevan untuk runtime karena WP2 pakai presence detection.",
+    "hamming_distances_2026_08_05_v2": {
+      "1_2": {
+        "diff_cells": 18,
+        "total_cells": 36,
+        "pct": 50.0
+      },
+      "1_3": {
+        "diff_cells": 19,
+        "total_cells": 36,
+        "pct": 52.8
+      },
+      "1_4": {
+        "diff_cells": 19,
+        "total_cells": 36,
+        "pct": 52.8
+      },
+      "2_3": {
+        "diff_cells": 21,
+        "total_cells": 36,
+        "pct": 58.3
+      },
+      "2_4": {
+        "diff_cells": 19,
+        "total_cells": 36,
+        "pct": 52.8
+      },
+      "3_4": {
+        "diff_cells": 20,
+        "total_cells": 36,
+        "pct": 55.6
+      }
+    },
+    "hamming_distances_2026_08_05_v3_trimmed_vote": {
+      "1_3": {
+        "diff_cells": 14,
+        "total_cells": 36,
+        "pct": 38.9
+      },
+      "1_4": {
+        "diff_cells": 12,
+        "total_cells": 36,
+        "pct": 33.3
+      },
+      "3_4": {
+        "diff_cells": 14,
+        "total_cells": 36,
+        "pct": 38.9
+      }
+    }
+  },
+  "1": {
+    "pattern": [
+      [
+        0,
+        1,
+        1,
+        0,
+        0,
+        1
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        0,
+        1,
+        1,
+        1
+      ],
+      [
+        0,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        1,
+        1,
+        0
+      ]
+    ],
+    "reliable": true,
+    "source": "dataset_arucode/wp1/ (trimmed-vote dari 133/166 sampel kualitas terbaik, quality-gate lolos 166/195 decode-ok dari 350 foto)",
+    "note": "Rebuild 2026-08-05 (v3, trimmed-vote): dataset_arucode/ kanonik, quality-gate (tail terdeteksi + |aspect-1|<=0.15) lalu buang 20% sampel terjauh dari modal awal (hamming), vote ulang. agreement naik dari v2. contoh sampel paling representatif: WIN_20260718_17_35_56_Pro.jpg, WIN_20260718_17_37_04_Pro (6).jpg, WIN_20260718_17_35_15_Pro (3).jpg, WIN_20260718_17_35_53_Pro (4).jpg, WIN_20260718_17_35_53_Pro (5).jpg",
+    "old_pattern_from_photos": [
+      [
+        0,
+        1,
+        1,
+        0,
+        0,
+        1
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        0,
+        1,
+        1,
+        1
+      ],
+      [
+        0,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        1,
+        1,
+        0
+      ]
+    ],
+    "old_agreement_from_photos": 0.671,
+    "old_pattern_from_aruco_bersih_v2": [
+      [
+        0,
+        1,
+        1,
+        1,
+        0,
+        1
+      ],
+      [
+        0,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        0,
+        1,
+        1,
+        1
+      ],
+      [
+        0,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      [
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        0,
+        1,
+        1,
+        1
+      ]
+    ],
+    "old_agreement_note_v2": "v2 (aruco_bersih, hand-picked file) tidak pernah live-tested berhasil",
+    "agreement": 0.723,
+    "n_samples": 133,
+    "n_total": 350
+  },
+  "2": {
+    "pattern": [
+      [
+        1,
+        1,
+        1,
+        0,
+        0,
+        1
+      ],
+      [
+        0,
+        0,
+        1,
+        1,
+        1,
+        1
+      ],
+      [
+        0,
+        1,
+        0,
+        0,
+        1,
+        1
+      ],
+      [
+        1,
+        0,
+        1,
+        0,
+        0,
+        1
+      ],
+      [
+        0,
+        1,
+        0,
+        0,
+        1,
+        0
+      ],
+      [
+        1,
+        1,
+        1,
+        0,
+        0,
+        1
+      ]
+    ],
+    "reliable": true,
+    "source": "aruco_image/aruco_bersih/Aruco_WP2_bersih.jpg",
+    "note": "Rebuild 2026-08-05 (v2): dari aruco_bersih/ (file digital bersih dgn background oranye asli, diproses lewat pipeline produksi penuh -- marker_mask/corners_of/warp_marker/decode_grid, BUKAN crop manual). Cross-check: hamming ke pattern lama (foto lapangan noisy) masuk akal (dekat, bukan acak) -- beda dari percobaan v1 (WP*_inverted.jpg) yang totally mismatch dan sudah di-revert. Separasi antar-WP min 18/36 (vs lama 9/36). BELUM diverifikasi ke marker cetakan fisik yang dipegang user sesi ini -- capture live sesi ini juga TIDAK cocok bersih ke pattern manapun (min H=17 ke WP4-bersih) -- kemungkinan sheet fisik yang dites perlu dicek ulang kecocokan labelnya, BUKAN cuma soal referensi.",
+    "old_pattern_from_photos": [
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        1,
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        1,
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        1,
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "old_agreement_from_photos": 0.714
+  },
+  "3": {
+    "pattern": [
+      [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        0,
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "reliable": true,
+    "source": "dataset_arucode/wp3/ (trimmed-vote dari 15/18 sampel kualitas terbaik, quality-gate lolos 18/24 decode-ok dari 37 foto)",
+    "note": "Rebuild 2026-08-05 (v3, trimmed-vote): dataset_arucode/ kanonik, quality-gate (tail terdeteksi + |aspect-1|<=0.15) lalu buang 20% sampel terjauh dari modal awal (hamming), vote ulang. agreement naik dari v2. contoh sampel paling representatif: WIN_20260726_15_56_11_Pro.jpg, WIN_20260726_15_56_12_Pro.jpg, WIN_20260726_15_56_13_Pro.jpg, WIN_20260726_15_56_28_Pro.jpg, WIN_20260726_15_56_49_Pro.jpg",
+    "old_pattern_from_photos": [
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        0,
+        1,
+        1,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        0,
+        1,
+        0,
+        0
+      ]
+    ],
+    "old_agreement_from_photos": 0.743,
+    "old_pattern_from_aruco_bersih_v2": [
+      [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        1,
+        0,
+        1,
+        0
+      ],
+      [
+        1,
+        1,
+        1,
+        1,
+        1,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        1,
+        1
+      ],
+      [
+        1,
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      [
+        1,
+        1,
+        0,
+        1,
+        0,
+        1
+      ]
+    ],
+    "old_agreement_note_v2": "v2 (aruco_bersih, hand-picked file) tidak pernah live-tested berhasil",
+    "agreement": 0.77,
+    "n_samples": 15,
+    "n_total": 37
+  },
+  "4": {
+    "pattern": [
+      [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        1,
+        1,
+        1,
+        0
+      ],
+      [
+        0,
+        1,
+        1,
+        0,
+        1,
+        0
+      ],
+      [
+        0,
+        1,
+        0,
+        0,
+        1,
+        0
+      ]
+    ],
+    "reliable": true,
+    "source": "dataset_arucode/wp4/ (trimmed-vote dari 19/23 sampel kualitas terbaik, quality-gate lolos 23/36 decode-ok dari 50 foto)",
+    "note": "Rebuild 2026-08-05 (v3, trimmed-vote): dataset_arucode/ kanonik, quality-gate (tail terdeteksi + |aspect-1|<=0.15) lalu buang 20% sampel terjauh dari modal awal (hamming), vote ulang. agreement naik dari v2. contoh sampel paling representatif: WIN_20260726_15_59_54_Pro (2).jpg, WIN_20260726_15_59_55_Pro.jpg, WIN_20260726_15_58_49_Pro.jpg, WIN_20260726_15_59_28_Pro.jpg, WIN_20260726_15_59_54_Pro.jpg",
+    "old_pattern_from_photos": [
+      [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        1,
+        0,
+        1,
+        0
+      ],
+      [
+        0,
+        1,
+        0,
+        0,
+        1,
+        0
+      ]
+    ],
+    "old_agreement_from_photos": 0.738,
+    "old_pattern_from_aruco_bersih_v2": [
+      [
+        0,
+        0,
+        1,
+        0,
+        1,
+        0
+      ],
+      [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1
+      ],
+      [
+        1,
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      [
+        1,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        1,
+        1,
+        0,
+        1,
+        0
+      ],
+      [
+        1,
+        1,
+        0,
+        0,
+        1,
+        1
+      ]
+    ],
+    "old_agreement_note_v2": "v2 (aruco_bersih, hand-picked file) tidak pernah live-tested berhasil",
+    "agreement": 0.791,
+    "n_samples": 19,
+    "n_total": 50
+  }
+}

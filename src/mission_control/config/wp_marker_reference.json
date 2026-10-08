@@ -1,0 +1,235 @@
+{
+  "_meta": {
+    "warning": "Pattern per 2026-08-07 (v4, quad-corner) dibangun dari dataset_arucode/wp{1,3,4}/ dgn corners_of() baru (approxPolyDP quad sungguhan + fallback minAreaRect, ganti dari minAreaRect-only). Divalidasi A/B PENUH 437 foto vs v3 (minAreaRect-only): agreement WP1 0.723->0.759, WP4 0.791->0.826 (WP3 turun 0.770->0.735, TAPI separasi WP3 ke WP1/WP4 naik -- lih. hamming_distances_2026_08_07_quadcorner). Hamming WP1<->WP4 (pasangan PALING rawan tertukar di lapangan, riwayat: WP1 physical sheet berulang kali kebaca sbg WP4 di live test) naik 12/36 -> 17/36. subpixel corner refine (cv2.cornerSubPix) dicoba DI ATAS quad-corner ini juga (A/B penuh) -- HASIL LEBIH BURUK di semua metrik, sengaja TIDAK dipakai. v4 BELUM live-tested -- WAJIB verifikasi fisik WP1/WP3/WP4 sebelum lomba (blocker lama, TIDAK berubah oleh perbaikan algoritmik ini).",
+    "grid_size": 6,
+    "convention": "bits[r][c] = 1 artinya sel (baris r, kolom c) HITAM. Orientasi: ekor di atas (N), kanonik.",
+    "generated_from": "dataset_arucode/wp{1,3,4}/*.jpg, trimmed-vote (quality-gate + outlier-trim 20%) via wp_reference_from_samples.py, corners_of() v4 quad-corner di wp_decode_audit.py (2026-08-07)",
+    "fixes_applied": [
+      "s>40 orange mask: toleran overexposed",
+      "_body_yspan: grid dipatok ke badan saja, bukan ekor+badan",
+      "corners_of: approxPolyDP (quad asli, epsilon search + convexity check) + fallback minAreaRect -- GANTI dari minAreaRect-only (v3). minAreaRect memaksa kotak-rotasi ke kontur yg sebenarnya trapesium saat foto miring (root-cause WP1: 74% foto large_noise dari distorsi perspektif). approxPolyDP sempat direvert dulu krn 'rapuh, latch ke notch grid/ekor' -- kali ini ekor sudah dibuang lewat MORPH_OPEN SEBELUM approxPolyDP jalan (beda dari percobaan lama), + downscale 0.25x sblm morfologi turut membuang notch grid halus sbg efek low-pass. Divalidasi A/B penuh 437 foto, lih. warning di atas.",
+      "decode_grid red exclusion: pixel merah (nampan WP2) diputihkan sebelum Otsu",
+      "tail detection red exclusion: pixel merah dikeluarkan dari body sebelum detect_tail_side (tray tidak menutupi protrusi ekor kertas)"
+    ],
+    "quadcorner_experiment_2026_08_07": {
+      "metodologi": "A/B penuh di seluruh dataset asli (wp1=350, wp3=37, wp4=50 foto), quality-gate+trimmed-vote IDENTIK dgn produksi, dibandingkan 3 varian corner-finder: minAreaRect (baseline v3), approxPolyDP+fallback (quad), approxPolyDP+cv2.cornerSubPix (quad+refine).",
+      "hasil_agreement": {
+        "baseline_minAreaRect": {"wp1": 0.7212, "wp3": 0.7865, "wp4": 0.7705},
+        "quad_approxPolyDP": {"wp1": 0.7588, "wp3": 0.7350, "wp4": 0.8261},
+        "quad_plus_subpix_refine": {"wp1": 0.7338, "wp3": 0.7350, "wp4": 0.7942}
+      },
+      "hasil_hamming_separasi": {
+        "baseline_minAreaRect": {"h13": 15, "h14": 10, "h34": 17},
+        "quad_approxPolyDP": {"h13": 20, "h14": 17, "h34": 19},
+        "quad_plus_subpix_refine": {"h13": 17, "h14": 14, "h34": 23}
+      },
+      "keputusan": "quad_approxPolyDP DIPAKAI (bukan +refine): menang di 2/3 WP agreement (WP1,WP4) DAN menang di SEMUA 3 pasangan separasi hamming vs baseline. subpix refine di atas quad malah menurunkan semua metrik (mask biner tak punya gradien tajam ala checkerboard utk subpix mengunci) -- dibuang.",
+      "eksperimen_ditolak_sebelumnya": "3 metode lain (subpixel refine di atas minAreaRect lama, adaptive local threshold di decode_grid, soft-averaging kontinu lintas-foto) sudah dicoba A/B penuh sesi yg sama dan DITOLAK -- semua kalah/netral atau (adaptive threshold) menaikkan self-agreement tapi MENGECILKAN separasi WP1<->WP4 dari 10/36 jadi 5/36 (bahaya, pola sama seperti EM yg direvert). Lih. wp_decode_audit_backup_before_quadcorner_20260807_0304.py utk kode sebelum eksperimen ini."
+    },
+    "em_status": "REVERTED (tidak berubah oleh v4) — em_aggregate() ada di kode tapi run() kembali ke aggregate(). Alasan: sirkularitas (rotasi dipilih berdasarkan cocok-ke-modal yg dihitung dari rotasi tsb). Perlu verifikasi fisik overlay posisi ekor vs rotasi EM sebelum deployment. Hasil sebelum revert (dari v3, TIDAK VALID): WP1 0.671->0.721, WP2 0.714->0.772, WP3 0.743->0.803, WP4 0.738->0.805.",
+    "wp2_strategy": {
+      "decision": "PRESENCE_DETECTION",
+      "rationale": "WP2 adalah dropping point — posisi presisi sudah dari koordinat T265/GPS di waypoints.yaml. Vision hanya perlu konfirmasi keberadaan marker (large non-orange blob), bukan decode ID grid presisi. Decode ID dicoba (LANGKAH 1-3) tapi agreement 0.714 tetap reliable=false setelah semua fix algoritmik habis. Presence detection lebih robust dan sesuai fungsi WP2. TIDAK terpengaruh oleh perubahan corners_of v4 -- WP2 tidak pernah lewat decode_frame() di produksi.",
+      "implementation_note": "Sudah diimplementasikan (detect_wp2_presence() di wp_marker_detector.py) -- deteksi blob merah (tray) >= wp2_min_area_px, bukan corners_of/decode_grid.",
+      "grid_pattern_status": "RESEARCH_ARTIFACT — pattern di bawah adalah hasil investigasi lama (v2, minAreaRect), TIDAK dipakai untuk runtime ID decoding di lomba, TIDAK di-regenerate di v4."
+    },
+    "hamming_distances": {
+      "1_2": {
+        "diff_cells": 12,
+        "total_cells": 36,
+        "pct": 33.3,
+        "note": "WP2 pakai presence detection, bukan ID decode — jarak ini informasional saja (pattern WP2 versi lama, tidak diregenerate)"
+      },
+      "1_3": {
+        "diff_cells": 20,
+        "total_cells": 36,
+        "pct": 55.6
+      },
+      "1_4": {
+        "diff_cells": 17,
+        "total_cells": 36,
+        "pct": 47.2
+      },
+      "2_3": {
+        "diff_cells": 10,
+        "total_cells": 36,
+        "pct": 27.8,
+        "note": "informasional, pattern WP2 versi lama"
+      },
+      "2_4": {
+        "diff_cells": 9,
+        "total_cells": 36,
+        "pct": 25.0,
+        "note": "informasional, pattern WP2 versi lama"
+      },
+      "3_4": {
+        "diff_cells": 19,
+        "total_cells": 36,
+        "pct": 52.8
+      }
+    },
+    "hamming_concern": "RESOLVED di v4 (lih. quadcorner_experiment_2026_08_07) — riwayat lama: WP1 vs WP4 sempat cuma 9/36 (25%, v3-orig) krn agreement WP1 rendah. v4 naik ke 17/36 (47.2%). Verifikasi fisik TETAP wajib sebelum lomba (perbaikan algoritmik tidak menggantikan bukti lapangan).",
+    "wp2_hamming_note": "WP2 vs WP3=27.8%, WP2 vs WP4=25.0% — tidak relevan untuk runtime karena WP2 pakai presence detection.",
+    "hamming_distances_2026_08_05_v3_trimmed_vote": {
+      "1_3": {"diff_cells": 14, "total_cells": 36, "pct": 38.9},
+      "1_4": {"diff_cells": 12, "total_cells": 36, "pct": 33.3},
+      "3_4": {"diff_cells": 14, "total_cells": 36, "pct": 38.9}
+    },
+    "hamming_distances_2026_08_07_quadcorner": {
+      "1_3": {"diff_cells": 20, "total_cells": 36, "pct": 55.6},
+      "1_4": {"diff_cells": 17, "total_cells": 36, "pct": 47.2},
+      "3_4": {"diff_cells": 19, "total_cells": 36, "pct": 52.8}
+    }
+  },
+  "1": {
+    "pattern": [
+      [0, 1, 1, 0, 0, 0],
+      [0, 1, 0, 0, 0, 0],
+      [0, 1, 0, 0, 1, 1],
+      [0, 1, 0, 1, 0, 0],
+      [0, 1, 1, 0, 0, 0],
+      [0, 1, 0, 1, 1, 1]
+    ],
+    "reliable": true,
+    "source": "dataset_arucode/wp1/ (trimmed-vote dari 111/138 sampel kualitas terbaik, quality-gate lolos 138/186 decode-ok dari 350 foto, corners_of v4 quad-corner)",
+    "note": "Rebuild 2026-08-07 (v4, quad-corner corners_of): approxPolyDP+fallback ganti minAreaRect-only. agreement naik dari v3 (0.723->0.759). sampel paling representatif (H=0): WIN_20260718_17_35_54_Pro (2).jpg, WIN_20260718_17_37_03_Pro.jpg, WIN_20260718_17_37_06_Pro (3).jpg, WIN_20260718_17_37_06_Pro (6).jpg",
+    "old_pattern_from_v3_20260805_minAreaRect": [
+      [0, 1, 1, 0, 0, 1],
+      [0, 0, 0, 0, 0, 0],
+      [0, 1, 0, 1, 1, 1],
+      [0, 1, 0, 0, 0, 0],
+      [0, 1, 1, 0, 0, 0],
+      [0, 0, 0, 1, 1, 0]
+    ],
+    "old_agreement_v3": 0.723,
+    "old_pattern_from_photos": [
+      [0, 1, 1, 0, 0, 1],
+      [0, 0, 0, 0, 0, 0],
+      [0, 1, 0, 1, 1, 1],
+      [0, 1, 0, 0, 0, 0],
+      [0, 1, 1, 0, 0, 0],
+      [0, 0, 0, 1, 1, 0]
+    ],
+    "old_agreement_from_photos": 0.671,
+    "old_pattern_from_aruco_bersih_v2": [
+      [0, 1, 1, 1, 0, 1],
+      [0, 1, 0, 0, 0, 0],
+      [0, 1, 0, 1, 1, 1],
+      [0, 1, 1, 1, 1, 1],
+      [0, 1, 1, 0, 0, 0],
+      [0, 1, 0, 1, 1, 1]
+    ],
+    "old_agreement_note_v2": "v2 (aruco_bersih, hand-picked file) tidak pernah live-tested berhasil",
+    "agreement": 0.759,
+    "n_samples": 111,
+    "n_total": 350
+  },
+  "2": {
+    "pattern": [
+      [1, 1, 1, 0, 0, 1],
+      [0, 0, 1, 1, 1, 1],
+      [0, 1, 0, 0, 1, 1],
+      [1, 0, 1, 0, 0, 1],
+      [0, 1, 0, 0, 1, 0],
+      [1, 1, 1, 0, 0, 1]
+    ],
+    "reliable": true,
+    "source": "aruco_image/aruco_bersih/Aruco_WP2_bersih.jpg",
+    "note": "TIDAK diregenerate di v4 (WP2 pakai presence detection di produksi, pattern ini murni research artifact, lih. _meta.wp2_strategy). Rebuild 2026-08-05 (v2): dari aruco_bersih/, diproses via pipeline v3 (minAreaRect) -- BELUM diverifikasi ke marker cetakan fisik.",
+    "old_pattern_from_photos": [
+      [0, 0, 0, 0, 0, 0],
+      [0, 0, 1, 0, 0, 0],
+      [0, 1, 1, 1, 0, 0],
+      [0, 1, 1, 1, 0, 0],
+      [0, 1, 1, 1, 0, 0],
+      [0, 0, 0, 0, 0, 0]
+    ],
+    "old_agreement_from_photos": 0.714
+  },
+  "3": {
+    "pattern": [
+      [0, 0, 0, 1, 0, 0],
+      [1, 0, 1, 0, 0, 0],
+      [1, 1, 1, 1, 1, 0],
+      [0, 0, 0, 0, 1, 1],
+      [0, 0, 0, 1, 0, 0],
+      [1, 1, 0, 0, 0, 1]
+    ],
+    "reliable": true,
+    "source": "dataset_arucode/wp3/ (trimmed-vote dari 13/16 sampel kualitas terbaik, quality-gate lolos 16/26 decode-ok dari 37 foto, corners_of v4 quad-corner)",
+    "note": "Rebuild 2026-08-07 (v4, quad-corner corners_of): approxPolyDP+fallback ganti minAreaRect-only. agreement TURUN dari v3 (0.770->0.735) TAPI separasi ke WP1/WP4 NAIK (20/36, 19/36 vs 15/36, 17/36 v3) -- lih. _meta.quadcorner_experiment_2026_08_07. sampel paling representatif: WIN_20260726_15_56_57_Pro.jpg (H=2), WIN_20260726_15_56_11_Pro.jpg (H=3), WIN_20260726_15_56_12_Pro.jpg (H=3)",
+    "old_pattern_from_v3_20260805_minAreaRect": [
+      [0, 0, 0, 1, 0, 0],
+      [0, 0, 1, 0, 0, 0],
+      [0, 1, 0, 1, 0, 0],
+      [0, 0, 0, 0, 1, 0],
+      [0, 0, 0, 1, 0, 0],
+      [0, 0, 0, 0, 0, 0]
+    ],
+    "old_agreement_v3": 0.77,
+    "old_pattern_from_photos": [
+      [0, 0, 0, 0, 0, 0],
+      [0, 0, 1, 0, 0, 0],
+      [0, 1, 0, 1, 1, 0],
+      [0, 0, 0, 0, 1, 0],
+      [0, 0, 0, 1, 0, 0],
+      [0, 1, 0, 1, 0, 0]
+    ],
+    "old_agreement_from_photos": 0.743,
+    "old_pattern_from_aruco_bersih_v2": [
+      [0, 0, 0, 1, 0, 0],
+      [1, 0, 1, 0, 1, 0],
+      [1, 1, 1, 1, 1, 0],
+      [0, 0, 0, 0, 1, 1],
+      [1, 0, 0, 1, 0, 0],
+      [1, 1, 0, 1, 0, 1]
+    ],
+    "old_agreement_note_v2": "v2 (aruco_bersih, hand-picked file) tidak pernah live-tested berhasil",
+    "agreement": 0.735,
+    "n_samples": 13,
+    "n_total": 37
+  },
+  "4": {
+    "pattern": [
+      [0, 0, 1, 0, 1, 0],
+      [1, 0, 0, 0, 0, 1],
+      [1, 0, 0, 1, 0, 0],
+      [1, 1, 1, 0, 0, 0],
+      [1, 1, 1, 0, 1, 0],
+      [1, 1, 0, 0, 1, 1]
+    ],
+    "reliable": true,
+    "source": "dataset_arucode/wp4/ (trimmed-vote dari 23/28 sampel kualitas terbaik, quality-gate lolos 28/36 decode-ok dari 50 foto, corners_of v4 quad-corner)",
+    "note": "Rebuild 2026-08-07 (v4, quad-corner corners_of): approxPolyDP+fallback ganti minAreaRect-only. agreement naik dari v3 (0.791->0.826). sampel paling representatif (H=0): WIN_20260726_15_58_49_Pro.jpg, WIN_20260726_15_58_51_Pro.jpg, WIN_20260726_15_58_52_Pro.jpg, WIN_20260726_15_58_59_Pro.jpg, WIN_20260726_15_59_07_Pro (2).jpg",
+    "old_pattern_from_v3_20260805_minAreaRect": [
+      [0, 0, 1, 0, 0, 0],
+      [0, 1, 0, 0, 0, 0],
+      [0, 0, 0, 1, 0, 0],
+      [0, 1, 1, 1, 1, 0],
+      [0, 1, 1, 0, 1, 0],
+      [0, 1, 0, 0, 1, 0]
+    ],
+    "old_agreement_v3": 0.791,
+    "old_pattern_from_photos": [
+      [0, 0, 1, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 1, 0, 0],
+      [0, 1, 1, 0, 0, 0],
+      [0, 1, 1, 0, 1, 0],
+      [0, 1, 0, 0, 1, 0]
+    ],
+    "old_agreement_from_photos": 0.738,
+    "old_pattern_from_aruco_bersih_v2": [
+      [0, 0, 1, 0, 1, 0],
+      [1, 0, 0, 0, 0, 1],
+      [1, 0, 0, 1, 0, 0],
+      [1, 1, 1, 0, 0, 0],
+      [1, 1, 1, 0, 1, 0],
+      [1, 1, 0, 0, 1, 1]
+    ],
+    "old_agreement_note_v2": "v2 (aruco_bersih, hand-picked file) tidak pernah live-tested berhasil",
+    "agreement": 0.826,
+    "n_samples": 23,
+    "n_total": 50
+  }
+}

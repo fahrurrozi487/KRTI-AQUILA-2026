@@ -1,0 +1,31 @@
+# DELTA PERBAIKAN: param yang BELUM sesuai antara Pixhawk fisik
+# (afteraautotune_10-08-26.param) vs profil target (gps_optflow_ek3.param).
+# Dibandingkan 2026-08-10 — lih. project_gps_mission_status.md.
+# Isinya CUMA param yang beda, bukan profil lengkap (jangan pakai file ini
+# sendirian buat setup dari nol — pakai gps_optflow_ek3.param buat itu).
+#
+# CARA: MP Full Parameter List → Load file ini → Write → REBOOT. JANGAN load saat armed.
+# CATATAN: COMPASS_USE=0 di dump asli TIDAK termasuk di sini — itu SUDAH BENAR
+# (kalian pakai compass eksternal dari modul GPS = COMPASS_USE2, bukan bug).
+
+# ========== Optical flow (MTF01) — belum pernah di-setup sama sekali di FC ==========
+# FLOW_TYPE: 0 (mati) -> 3 (Mateksys MTF01)
+FLOW_TYPE,3
+# Sub-param ini gak muncul di dump asli krn ArduPilot nyembunyiin saat FLOW_TYPE=0.
+# Setelah FLOW_TYPE=3+reboot, param ini akan muncul & perlu diisi manual:
+FLOW_ORIENT_YAW,0
+FLOW_POS_X,0
+FLOW_POS_Y,0
+FLOW_POS_Z,0
+
+# ========== EK3 SRC2 (fallback saat GPS lost) — saat ini duplikat GPS, bukan OptFlow ==========
+# EK3_SRC2_POSXY: 3 (GPS, duplikat SRC1) -> 5 (OptFlow, fallback beneran)
+EK3_SRC2_POSXY,5
+# EK3_SRC2_VELXY: 0 (None, kosong) -> 5 (OptFlow)
+EK3_SRC2_VELXY,5
+# EK3_SRC2_VELZ: 3 (GPS) -> 1 (Baro, sesuai profil target)
+EK3_SRC2_VELZ,1
+
+# ========== EK3 fusion option — supaya GPS+flow di-fuse bareng, bukan cuma primary ==========
+# EK3_SRC_OPTIONS: 0 -> 1
+EK3_SRC_OPTIONS,1

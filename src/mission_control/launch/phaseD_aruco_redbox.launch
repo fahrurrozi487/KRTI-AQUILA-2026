@@ -1,0 +1,55 @@
+<launch>
+    <!-- GUIDED: scan ArUco WP1 -> drop WP2 (align red-box) -> yaw kiri ->
+         scan ArUco WP3 -> WP4 (line_follow, opsional) -> gate_single_final
+         (goto, TANPA deteksi gate) -> land WP5. Wrapper tipis di atas
+         phaseD_mission.launch (sama pola phaseD_auto.launch), preset
+         use_wp_marker:=true use_aruco:=false biar WP2 kebaca red-box &
+         WP1/WP3 ArUco dari SATU node (wp_marker_node.py, lih.
+         mission_aruco_redbox.yaml). use_gate/use_gate_multi TETAP false,
+         gate_single_final di misi ini goto biasa, tidak perlu detektor gate
+         sama sekali. -->
+    <arg name="do_takeoff" default="true" />   <!-- false = sudah hover GUIDED di WP1 (dari Stabilize) -->
+    <arg name="takeoff_alt" default="1.0" />
+    <!-- 2026-09-16: WP4 di mission_aruco_redbox.yaml selalu action:line_follow,
+         tapi arg ini yang nentuin dipakai beneran atau tidak. Kalau false,
+         line_node.py TIDAK dinyalakan, _line_follow() otomatis degradasi jadi
+         goto polos ke WP4 (self._line tetap None, lih. docstring
+         _line_follow() di mission_d.py), TIDAK perlu 2 file misi terpisah.
+         Default true krn garis fisik memang ada di lapangan; set false kapan
+         pun garisnya tidak mau dipakai sesi itu. -->
+    <arg name="use_line_follow" default="false" />
+    <!-- ponytail: TIDAK ada arg aruco_invert di sini, jalur use_wp_marker
+         (bukan use_aruco) pakai wp_marker_node.py, invert=True HARDCODED di
+         situ (lih. wp_marker_node.py), bukan param launch. -->
+    <!-- 2026-09-22: arah/besar yaw WP2->WP3 sekarang parameter launch, karena
+         arena punya 2 bentuk fisik, kadang belok kanan bukan kiri. Default
+         sama persis nilai leg yaml (90/left) supaya TIDAK ada perubahan
+         perilaku kalau argnya gak disentuh. Diteruskan ke mekanisme generik
+         yaw_direction_override/yaw_deg_override di phaseD_mission.launch,
+         berlaku ke SEMUA leg action:yaw di misi ini (kebetulan cuma satu). -->
+    <arg name="wp2_yaw_direction" default="left" />
+    <arg name="wp2_yaw_deg" default="90" />
+    <!-- 2026-09-23: retry/recovery, lanjut misi dari WP tertentu, leg
+         sebelumnya di-skip total. Default kosong = misi penuh dari WP1 (leg
+         0), TIDAK ada perubahan perilaku. WP valid utk misi ini: wp1, wp2
+         (-> leg drop, BUKAN leg yaw, wp2 muncul 2x, dipakai yg PERTAMA),
+         wp3, wp4, gate_single_final, wp5. Kalau drone sudah di darat
+         (disarmed) saat mau retry, set do_takeoff:=true juga. -->
+    <arg name="start_wp" default="" />
+
+    <include file="$(find mission_control)/launch/phaseD_mission.launch">
+        <arg name="mission"        value="aruco_redbox" />
+        <arg name="do_takeoff"     value="$(arg do_takeoff)" />
+        <arg name="takeoff_alt"    value="$(arg takeoff_alt)" />
+        <arg name="sim_markers"    value="false" />
+        <arg name="use_gate"       value="false" />
+        <arg name="use_gate_multi" value="false" />
+        <arg name="use_aruco"      value="false" />
+        <arg name="use_wp_marker"  value="false" />
+        <arg name="wp_marker_image_topic" value="/camera_down/image_raw" />
+        <arg name="use_line_follow" value="$(arg use_line_follow)" />
+        <arg name="yaw_direction_override" value="$(arg wp2_yaw_direction)" />
+        <arg name="yaw_deg_override" value="$(arg wp2_yaw_deg)" />
+        <arg name="start_wp"        value="$(arg start_wp)" />
+    </include>
+</launch>

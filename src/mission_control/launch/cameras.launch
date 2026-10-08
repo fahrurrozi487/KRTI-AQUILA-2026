@@ -1,0 +1,15 @@
+<launch>
+    <!-- Kedua kamera: depan (gate) + bawah (ArUco).
+         C310 gate  = /dev/video0  -> /camera_front/image_raw (1280x720 mjpeg default)
+         C920 ArUco = /dev/video1  -> /camera_down/image_raw (640x480 yuyv)
+         Cek: v4l2-ctl list-devices (nomor bisa tertukar jika colok beda urutan) -->
+    <arg name="front_device" default="/dev/video0" />
+    <arg name="down_device"  default="/dev/video1" />
+
+    <include file="$(find mission_control)/launch/camera_front.launch">
+        <arg name="video_device" value="$(arg front_device)" />
+    </include>
+    <include file="$(find mission_control)/launch/camera_down.launch">
+        <arg name="video_device" value="$(arg down_device)" />
+    </include>
+</launch>

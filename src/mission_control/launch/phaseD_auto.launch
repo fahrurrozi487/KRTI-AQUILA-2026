@@ -1,0 +1,35 @@
+<launch>
+    <!-- MISI AUTO: generate + PUSH rute ke FC. Navigasi-agnostic (GPS+OptFlow
+         sekarang, dulu T265 non-GPS).
+         Beda dgn phaseD_mission.launch (GUIDED+ROS+kamera):
+         ini hanya meng-UPLOAD misi geometris; FC yg terbang sendiri saat switch AUTO.
+         mavros harus sudah jalan + GPS sudah fix (origin di-set otomatis oleh FC). -->
+    <arg name="pkg" default="$(find mission_control)" />
+    <arg name="waypoints_file" default="$(arg pkg)/config/waypoints.yaml" />
+    <!-- rute: mission_auto.yaml | mission_auto_drop.yaml -->
+    <arg name="route_file"     default="$(arg pkg)/config/mission_auto.yaml" />
+
+    <!-- 14 Sep 2026: origin default OTOMATIS dari /mavros/global_position/gp_origin
+         sesi ini (use_live_origin). lat/lon di bawah cuma FALLBACK manual kalau live
+         origin gak kepakai/gak ada (mis. T265/testing/FC belum kasih origin). -->
+    <arg name="use_live_origin" default="true" />
+    <arg name="lat" default="-7.0501108" />
+    <arg name="lon" default="110.3913388" />
+    <arg name="takeoff_alt" default="1.2" />
+    <!-- mode: push (upload+readback ke FC, disarmed=aman) | preview (offline, tanpa FC) -->
+    <arg name="mode" default="push" />
+
+    <node pkg="mission_control" type="mission_auto.py" name="mission_auto" output="screen"
+          required="true">
+        <param name="waypoints_file" value="$(arg waypoints_file)" />
+        <param name="route_file"     value="$(arg route_file)" />
+        <param name="use_live_origin" value="$(arg use_live_origin)" />
+        <param name="lat"            value="$(arg lat)" />
+        <param name="lon"            value="$(arg lon)" />
+        <param name="takeoff_alt"    value="$(arg takeoff_alt)" />
+        <param name="mode"           value="$(arg mode)" />
+        <param name="servo_channel"  value="8" />
+        <param name="servo_open"     value="1013" />
+        <param name="clear_first"    value="true" />
+    </node>
+</launch>

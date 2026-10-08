@@ -1,0 +1,99 @@
+{
+  "_meta": {
+    "warning": "Mapping folder->ID BELUM diverifikasi fisik ke marker asli di lapangan. Trust AGENTS.md as-is (wp1_new=id1, wp2=id2, wp3=id3, wp4=id4). Perlu dikonfirmasi manual sebelum dipakai di lomba.",
+    "grid_size": 6,
+    "convention": "bits[r][c] = 1 artinya sel (baris r, kolom c) HITAM. Orientasi: ekor di atas (N), kanonik.",
+    "generated_from": "wp_decode_audit.py",
+    "fixes_applied": [
+      "s>40 orange mask: toleran overexposed",
+      "_body_yspan: grid dipatok ke badan saja, bukan ekor+badan",
+      "minAreaRect corners: stabil vs approxPolyDP",
+      "decode_grid red exclusion: pixel merah (nampan WP2) diputihkan sebelum Otsu",
+      "tail detection red exclusion: pixel merah dikeluarkan dari body sebelum detect_tail_side",
+      "em_aggregate: EM iterative tail refinement — koreksi foto dengan tail detection yang salah sebelum aggregasi modal (konvergen 2-4 iterasi)"
+    ],
+    "em_methodology": {
+      "description": "EM iterative: E step=tiap foto cari rotasi bits (0/90/180/270 CCW) yang cocok dengan modal saat ini; M step=hitung ulang modal dari bits terrotasi. Konvergen bila tidak ada rotasi yang berubah.",
+      "validation": "WP4: modal_em==modal_json (H=0/36), 0 foto memburuk — validasi sempurna. WP3: H=3/36 (3 sel marginal ~54% yang shifted ke BLACK — dikonfirmasi benar oleh foto 15_56_11 yang match 0 sel salah vs modal_em). WP1/WP2: H=3/36 (sel marginal 53-55% yang bergeser).",
+      "limitation": "EM adalah global optimization: WP1 ada 49/195 foto yang hamming-nya lebih tinggi vs modal baru (trade-off acceptable karena agreement global tetap naik)."
+    },
+    "wp2_strategy": {
+      "decision": "PRESENCE_DETECTION",
+      "rationale": "WP2 adalah dropping point — posisi presisi sudah dari koordinat T265/GPS. Vision hanya perlu konfirmasi keberadaan marker (large non-orange blob). Decode ID dicoba sampai habis (LANGKAH 1-4 + EM) tapi agreement 0.772 tetap reliable=false. Presence detection lebih robust dan sesuai fungsi WP2.",
+      "implementation_note": "Belum diimplementasikan di node mission_control — task sesi berikutnya. Rekomendasi: deteksi blob non-orange >= area_threshold di frame kamera bawah.",
+      "grid_pattern_status": "RESEARCH_ARTIFACT — pattern di bawah adalah hasil investigasi EM, TIDAK dipakai untuk runtime ID decoding di lomba."
+    },
+    "hamming_distances": {
+      "note": "Dihitung dari pola EM. WP2 hanya informasional (presence detection). Semua jarak meningkat atau sama vs sebelum EM.",
+      "1_2": {"diff_cells": 12, "total_cells": 36, "pct": 33.3, "note": "WP2 presence detection — informasional"},
+      "1_3": {"diff_cells": 16, "total_cells": 36, "pct": 44.4, "note": "was 33.3% — separasi lebih baik"},
+      "1_4": {"diff_cells": 10, "total_cells": 36, "pct": 27.8, "note": "was 25.0% — minimum pair, sedikit lebih baik"},
+      "2_3": {"diff_cells": 14, "total_cells": 36, "pct": 38.9, "note": "informasional (was 27.8%)"},
+      "2_4": {"diff_cells": 12, "total_cells": 36, "pct": 33.3, "note": "informasional (was 25.0%)"},
+      "3_4": {"diff_cells": 16, "total_cells": 36, "pct": 44.4, "note": "was 36.1% — separasi lebih baik"}
+    },
+    "hamming_concern": "WP1 vs WP4 = 27.8% (10 sel) — MINIMUM antar WP runtime. User konfirmasi WP1 != WP4 fisik — kemiripan adalah artefak WP1 agreement masih rendah (0.721). Verifikasi fisik wajib sebelum lomba.",
+    "wp2_hamming_note": "WP2 vs WP3=38.9%, WP2 vs WP4=33.3% — tidak relevan untuk runtime karena WP2 pakai presence detection."
+  },
+  "1": {
+    "pattern": [
+      [0,1,1,0,0,1],
+      [0,1,0,0,0,0],
+      [0,1,0,1,1,1],
+      [0,1,0,1,0,0],
+      [0,1,1,0,0,0],
+      [0,1,0,1,1,0]
+    ],
+    "agreement": 0.721,
+    "n_samples": 195,
+    "n_total": 350,
+    "reliable": false,
+    "note": "agreement 0.721 (EM-refined, was 0.671). EM mengkoreksi 85/195 foto (44%) tail detection salah. 3 sel berbeda dari modal lama (sel marginal 53-55% yang shifted). Root cause: 74% foto 'large_noise' (blur-hamming corr=+0.437 = foto tajam-sudut lebih noisy dari normal), 21% tail_error, 6% minor. 155 foto buang: 89 sudut ekstrem, 66 sedang (AR_TOL=0.35 dicoba, justru turunkan agreement). reliable=false karena agreement <0.75. Ekor scatter: N=90 E=27 W=40 S=38. User konfirmasi WP1 != WP4 fisik."
+  },
+  "2": {
+    "pattern": [
+      [0,0,0,0,1,1],
+      [0,1,1,0,0,0],
+      [0,1,1,1,0,0],
+      [0,1,1,1,0,0],
+      [0,1,1,1,0,0],
+      [0,0,0,0,0,0]
+    ],
+    "agreement": 0.772,
+    "n_samples": 24,
+    "n_total": 62,
+    "reliable": false,
+    "runtime_strategy": "PRESENCE_DETECTION",
+    "note": "KEPUTUSAN STRATEGIS: WP2 pakai presence detection, BUKAN decode ID. Pattern ini RESEARCH ARTIFACT. Fix diterapkan: (1) decode_grid red exclusion +0.030, (2) tail detection red exclusion +0.009, (3) EM tail refinement +0.058. Agreement 0.772 tetap reliable=false. Root cause: 75% foto 'large_noise' (nampan merah mengganggu fundamental). EM mengkoreksi 11/24 foto."
+  },
+  "3": {
+    "pattern": [
+      [0,0,0,1,0,0],
+      [0,0,1,0,1,0],
+      [0,1,1,1,1,0],
+      [0,0,0,0,1,0],
+      [0,0,0,1,0,0],
+      [0,1,0,1,0,0]
+    ],
+    "agreement": 0.803,
+    "n_samples": 24,
+    "n_total": 37,
+    "reliable": true,
+    "note": "agreement 0.803 (EM-refined, was 0.743, delta=+0.060). EM mengkoreksi 10/24 foto. 3 sel berbeda dari modal JSON lama — dikonfirmasi EM lebih akurat (foto 15_56_11: 0 sel salah vs modal_em, tapi 3 salah vs JSON). Hamming vs WP4=44.4% (was 36.1%). Root cause: 25% tail_error, 25% minor_noise, 50% large_noise. Blur-hamming corr=-0.393. Ekor: N=9 E=5 W=7 S=3."
+  },
+  "4": {
+    "pattern": [
+      [0,0,1,0,0,0],
+      [0,0,0,0,0,0],
+      [0,0,0,1,0,0],
+      [0,1,1,0,0,0],
+      [0,1,1,0,1,0],
+      [0,1,0,0,1,0]
+    ],
+    "agreement": 0.805,
+    "n_samples": 36,
+    "n_total": 50,
+    "reliable": true,
+    "note": "agreement 0.805 (EM-refined, was 0.738, delta=+0.067). EM mengkoreksi 17/36 foto (47%) — 0 foto memburuk, modal identik dengan modal lama (H=0/36). Root cause: 33% tail_error (avg 6.3 sel saved), 36% minor_noise, 3% perfect, 28% large_noise. Ekor scatter N=S=E=W=9 disengaja, normalisasi terbukti bekerja. Hamming vs WP3=44.4%. User konfirmasi WP4 != WP1 fisik."
+  }
+}

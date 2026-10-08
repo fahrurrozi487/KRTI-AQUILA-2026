@@ -1,0 +1,17 @@
+<launch>
+    <!-- Set EKF origin + home untuk terbang non-GPS (T265). -->
+    <!-- Jalankan SESUDAH bring-up (mavros konek + T265 local_position jalan). -->
+    <!-- One-shot: node exit sendiri setelah home ter-set. Ulangi tiap boot FC. -->
+
+    <!-- Koordinat lapangan (default = placeholder Bandung). -->
+    <!-- Non-GPS: angka absolut tak kritis; ganti hanya biar peta MP pas. -->
+    <arg name="lat" default="-7.0501108" />
+    <arg name="lon" default="110.3913388" />
+    <arg name="alt" default="700.0" />
+
+    <node pkg="mission_control" type="set_origin_home.py" name="set_origin_home" output="screen">
+        <param name="lat" value="$(arg lat)" />
+        <param name="lon" value="$(arg lon)" />
+        <param name="alt" value="$(arg alt)" />
+    </node>
+</launch>

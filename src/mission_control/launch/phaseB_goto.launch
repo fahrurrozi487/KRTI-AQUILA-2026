@@ -1,0 +1,18 @@
+<launch>
+    <!-- FASE B: Guided takeoff + goto 1 koordinat (uji di SITL/Gazebo) -->
+    <!-- mavros harus sudah jalan terpisah (lihat README). Ini hanya node misi. -->
+
+    <arg name="target_x" default="5.0" />
+    <arg name="target_y" default="0.0" />
+    <arg name="target_z" default="2.0" />
+    <arg name="takeoff_alt" default="2.0" />
+    <arg name="reach_tol" default="0.3" />
+
+    <node pkg="mission_control" type="mission_node.py" name="mission_node" output="screen">
+        <param name="target_x" value="$(arg target_x)" />
+        <param name="target_y" value="$(arg target_y)" />
+        <param name="target_z" value="$(arg target_z)" />
+        <param name="takeoff_alt" value="$(arg takeoff_alt)" />
+        <param name="reach_tol" value="$(arg reach_tol)" />
+    </node>
+</launch>

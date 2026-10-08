@@ -1,0 +1,11 @@
+# AUTO: waypoint + drop BUTA (servo) + land. Navigasi-agnostic (GPS+OptFlow
+# sekarang, dulu T265 non-GPS) -- FC terbang sendiri, TIDAK pakai kamera ArUco/gate.
+# drop = sampai WP lalu DO_SET_SERVO (buka ch8, dikonfirmasi fisik). Presisi = seakurat survei WP.
+#
+# Upload:
+#   roslaunch mission_control phaseD_auto.launch \
+#     route_file:=$(find mission_control)/config/mission_auto_drop.yaml mode:=push
+legs:
+  - {wp: wp1, action: waypoint, hold: 3.0}
+  - {wp: wp2, action: drop,     hold: 3.0}
+  - {wp: wp3, action: land}

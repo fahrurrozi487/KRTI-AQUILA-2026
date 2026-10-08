@@ -1,0 +1,77 @@
+<launch>
+    <!-- FASE D: state machine misi (uji di SITL). mavros harus sudah jalan. -->
+    <!-- mission: seleksi | final | gate_only | aruco_only | aruco_drop -->
+    <arg name="mission" default="seleksi" />
+    <arg name="do_takeoff" default="true" />           <!-- false = sudah hover GUIDED (dari Stabilize) -->
+    <arg name="sim_markers" default="true" />          <!-- false di lapangan (tanpa mock ArUco) -->
+    <arg name="use_gate" default="true" />             <!-- jalankan gate_node utk traverse -->
+    <arg name="gate_image_topic" default="/camera_front/image_raw" />
+    <!-- ArUco: true di lapangan (scan/drop). false bila sim_markers atau gate-only -->
+    <arg name="use_aruco" default="false" />
+    <arg name="aruco_image_topic" default="/camera_down/image_raw" />
+    <!-- true = marker putih-di-hitam (terpal); false = hitam-di-putih (cetakan normal/PNG) -->
+    <arg name="aruco_invert" default="true" />
+    <!-- WP custom decoder (Task 3): true = pakai wp_marker_node sbg source utama scan/drop -->
+    <arg name="use_wp_marker" default="false" />
+    <arg name="wp_marker_image_topic" default="/camera_down/image_raw" />
+    <arg name="pkg" default="$(find mission_control)" />
+
+    <arg name="waypoints_file" default="$(arg pkg)/config/waypoints.yaml" />
+    <arg name="mission_file"   default="$(arg pkg)/config/mission_$(arg mission).yaml" />
+
+    <!-- safety-critical tuning (default konservatif utk vision outdoor) -->
+    <arg name="reach_tol_xy"   default="0.4" />   <!-- m, tol sampai horizontal -->
+    <arg name="reach_tol_z"    default="0.3" />   <!-- m, tol sampai vertikal -->
+    <arg name="goto_timeout"  default="60.0" />   <!-- s, abort goto kalau gak nyampe -->
+    <arg name="max_recede"    default="2.0" />    <!-- m, abort kalau menjauh dari titik terdekat -->
+    <arg name="pose_stale_sec" default="2.0" />   <!-- s, abort kalau pose EKF berhenti update -->
+    <arg name="align_max_drift" default="1.5" />  <!-- m, clamp deviasi align dari WP -->
+    <arg name="small_marker_align_tol" default="0.04" /> <!-- tol align tahap-2 marker kecil (lebih ketat) -->
+    <arg name="traverse_through_m" default="1.5" /> <!-- m, fly-through setelah center gate -->
+
+    <node pkg="mission_control" type="mission_d.py" name="mission_d" output="screen">
+        <param name="waypoints_file" value="$(arg waypoints_file)" />
+        <param name="mission_file"   value="$(arg mission_file)" />
+        <param name="do_takeoff"     value="$(arg do_takeoff)" />
+        <param name="takeoff_alt"    value="2.0" />
+        <param name="reach_tol_xy"   value="$(arg reach_tol_xy)" />
+        <param name="reach_tol_z"    value="$(arg reach_tol_z)" />
+        <param name="goto_timeout"  value="$(arg goto_timeout)" />
+        <param name="max_recede"    value="$(arg max_recede)" />
+        <param name="pose_stale_sec" value="$(arg pose_stale_sec)" />
+        <param name="align_max_drift" value="$(arg align_max_drift)" />
+        <param name="small_marker_align_tol" value="$(arg small_marker_align_tol)" />
+        <param name="traverse_through_m" value="$(arg traverse_through_m)" />
+        <param name="servo_channel"  value="9" />
+        <param name="servo_open"     value="1013" />
+        <param name="servo_close"    value="2015" />
+        <!-- arahkan ke wp_marker_node bila use_wp_marker=true, jika tidak ke aruco_node -->
+        <param if="$(arg use_wp_marker)"
+               name="markers_topic" value="/wp_marker_node/markers" />
+    </node>
+
+    <!-- mock kamera bawah: hanya utk SITL (matikan saat kamera nyata) -->
+    <node if="$(arg sim_markers)" pkg="mission_control" type="sim_markers.py"
+          name="sim_markers" output="screen">
+        <param name="waypoints_file" value="$(arg waypoints_file)" />
+        <param name="mission_file"   value="$(arg mission_file)" />
+    </node>
+
+    <!-- detektor gate kamera depan (untuk leg traverse) -->
+    <include if="$(arg use_gate)" file="$(find mission_control)/launch/gate_detect.launch">
+        <arg name="image_topic" value="$(arg gate_image_topic)" />
+    </include>
+
+    <!-- detektor ArUco kamera bawah (scan/drop). invert: true=terpal inverted, false=cetak normal -->
+    <include if="$(arg use_aruco)" file="$(find mission_control)/launch/aruco_detect.launch">
+        <arg name="image_topic" value="$(arg aruco_image_topic)" />
+        <arg name="invert" value="$(arg aruco_invert)" />
+    </include>
+
+    <!-- WP custom decoder (Task 3). Pakai sbg pengganti aruco_node utk marker lapangan.
+         Aktifkan: use_wp_marker:=true use_aruco:=false
+         mission_d otomatis diarahkan ke /wp_marker_node/markers via markers_topic param. -->
+    <include if="$(arg use_wp_marker)" file="$(find mission_control)/launch/wp_marker_detect.launch">
+        <arg name="image_topic" value="$(arg wp_marker_image_topic)" />
+    </include>
+</launch>

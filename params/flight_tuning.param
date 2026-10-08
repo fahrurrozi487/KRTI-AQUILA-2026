@@ -1,0 +1,50 @@
+# Tuning navigasi: kecepatan, kehalusan, landing smooth (ArduCopter 4.5+).
+# Nilai = KONSERVATIF untuk drone non-GPS T265 (lapangan kecil, navigasi vision).
+# Default ArduPilot ditandai (#def=...). Hanya ubah bila aman di SITL + walk test lulus.
+#
+# CARA LOAD: Mission Planner -> Config -> Full Parameter List -> Load file ini
+#            -> Write Params -> REBOOT Pixhawk.
+# JANGAN load saat drone armed.
+
+# === KECEPATAN TERBANG (AUTO / Guided / RTL) ===
+# Satuan cm/s. Default 500 (5 m/s). T265 rawan drop tracking di kecepatan tinggi
+# + lapangan kompetisi kecil -> 3 m/s cukup & lebih aman untuk vision.
+WPNAV_SPEED,300
+# Climb (naik): default 250 -> 1.5 m/s (lebih tenang, kurangi drift alt baro).
+WPNAV_SPEED_UP,150
+# Descent (turun ke WP/land start): default 150 -> 1 m/s.
+WPNAV_SPEED_DN,100
+
+# === KECEPATAN MODE PILOT (Stabilize/AltHold/Loiter) ===
+# Maks horizontal manual: default 1000 (10 m/s) -> match 3 m/s biar gak loncat.
+PILOT_MAX_VEL_XY,300
+# Climb/descent manual (cm/s): default 250/150 -> selaras.
+PILOT_SPEED_UP,150
+PILOT_SPEED_DN,100
+
+# === KEPENTINGAN YAW (cm/s? bukan — centi-deg/s) ===
+# ATC_SLEW_YAW: limit rate yaw (centi-deg/s). Default 6000 = 60 deg/s.
+# Turunkan ke 3000 (30 deg/s) utk putar halus, kurangi gangguan tracking T265.
+ATC_SLEW_YAW,3000
+
+# === KEHALUSAN / PEMBRAKEAN Loiter ===
+# LOIT_BRK_ACCEL: percepatan brake Loiter (cm/s²). Default 80. Naikkan = brake lebih
+# cepat (kasar); turunkan = lebih halus tapi stop lebih lambat. 50 = halus.
+LOIT_BRK_ACCEL,50
+# LOIT_BRK_JERK: limit jerk brake (cm/s³). Default 1000. Turunkan = ramp halus.
+LOIT_BRK_JERK,500
+# LOIT_SPEED: maks kec Loiter (cm/s). Default 250. 200 = lebih tenang.
+LOIT_SPEED,200
+
+# === LANDING SMOOTH ===
+# LAND_SPD_HIGH_MS: kec turun di alt tinggi (m/s), di atas LAND_ALT_LOW_M.
+# Default 2.0 -> 1.0 (turun awal lebih tenang, kurangi shock baro prop-wash).
+LAND_SPD_HIGH_MS,1.0
+# LAND_ALT_LOW_M: alt (m) di mana switch ke LAND_SPD_MS (final). Default 10.
+# 10 sudah pas; bila ingin final lebih lama/halus, naikkan ke 15.
+LAND_ALT_LOW_M,10
+# LAND_SPD_MS: kec turun FINAL (m/s) dekat tanah. Default 0.5 -> 0.35 (halus).
+# Jangan <0.3 (rawan oscillation ground-effect / bounce).
+LAND_SPD_MS,0.35
+# LAND_REPOSITION: 1 = boleh geser dgn stick saat land. Default 1. Biarkan 1.
+LAND_REPOSITION,1

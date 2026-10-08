@@ -1,0 +1,9 @@
+# TEST-ONLY (Task 4 SITL heading-align verification) -- BUKAN mission lomba.
+# Satu leg scan WP1 saja. mission_seleksi.yaml punya WP1/WP2/WP3 dlm radius
+# saling tumpang tindih dgn sim_markers.py ~view_radius default (3.0m), jadi
+# WpMarkerResult utk id lain ikut ter-publish & menimpa hasil WP1 sebelum
+# _align_heading_to_tail() sempat baca -- guard wp_id (benar) jadi skip.
+# File ini mengisolasi sim_markers.py cuma ke id=1 spy heading align WP1 bisa
+# diuji end-to-end di SITL.
+legs:
+  - {wp: wp1, action: scan, expected_id: 1}

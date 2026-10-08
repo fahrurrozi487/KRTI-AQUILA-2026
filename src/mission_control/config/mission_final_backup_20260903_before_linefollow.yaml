@@ -1,0 +1,22 @@
+# Rencana misi BABAK FINAL (lanjut s/d WP4). Merujuk nama di waypoints.yaml.
+# Sama dgn seleksi tapi WP3 bukan land — lanjut ke WP4 lalu land di sana.
+# (Gate/segmen antara WP3->WP4 placeholder; sesuaikan saat aturan final jelas.)
+#
+# GATE BERLAPIS (DIUPDATE 2026-08-08, sinkron waypoints.yaml/mission_seleksi.yaml):
+# gate_double/gate_triple = gerbang fisik berlapis (double=2 bidang, triple=3
+# bidang) -- gate_layers diaktifkan. WAJIB use_gate_multi:=true use_gate:=false
+# saat launch (gate_node.py lama gak paham num_openings>1).
+#
+# ⚠️ Leg `yaw` sebelum gate_triple DITAMBAHKAN (2026-08-08) -- geometri
+# WP2->gate_triple butuh belok kiri 90 deg (sama seperti mission_seleksi.yaml),
+# tanpa ini kamera depan gak akan menghadap ke gerbang triple. Sebelumnya
+# file ini gak punya leg yaw sama sekali -- kemungkinan gap lama, bukan
+# perubahan geometri baru.
+legs:
+  - {wp: wp1,         action: scan,     expected_id: 1}
+  - {wp: gate_double, action: traverse, gate_layers: 2}
+  - {wp: wp2,         action: drop,     expected_id: 2}
+  - {wp: wp2,         action: yaw,      yaw_deg: 90, direction: left}
+  - {wp: gate_triple, action: traverse, gate_layers: 3}
+  - {wp: wp3,         action: scan,     expected_id: 3}
+  - {wp: wp4,         action: land,     expected_id: 4}

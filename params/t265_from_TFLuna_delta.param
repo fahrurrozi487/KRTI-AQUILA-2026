@@ -1,0 +1,104 @@
+# DELTA dari TF-Luna_GPS_18.13_17-7-26.param
+# Tujuan: landing mulus + T265 minim drift / lost vision
+# HANYA param yang perlu diubah (bukan full dump).
+#
+# CARA: MP Full Parameter List → Load file ini → Write → REBOOT
+# JANGAN load saat armed. Bandingkan nilai lama di bawah.
+#
+# Dump asal = GPS+TF-Luna. Untuk T265 non-GPS, blok VISION WAJIB.
+
+# ========== 1) VISION / EKF — WAJIB (tanpa ini T265 tidak dipakai) ==========
+# Lama → Baru
+# VISO_TYPE: 0 → 2          (0=mati; 2=Intel T265)
+VISO_TYPE,2
+# EK3_SRC1_POSXY: 3(GPS) → 6(ExternalNav)
+EK3_SRC1_POSXY,6
+# EK3_SRC1_VELXY: 3(GPS) → 6
+EK3_SRC1_VELXY,6
+# EK3_SRC1_VELZ: 3(GPS) → 6
+EK3_SRC1_VELZ,6
+# EK3_SRC1_POSZ: 1(Baro) tetap 1  (JANGAN 6 — altitude T265 rawan getaran)
+EK3_SRC1_POSZ,1
+# EK3_SRC1_YAW: 1(Compass) → 6(camera)  *** JEBAKAN: kalau 1 + compass off = stopped aiding ***
+EK3_SRC1_YAW,6
+# GPS1_TYPE: 1 → 0           (matikan GPS; non-GPS murni)
+GPS1_TYPE,0
+# AHRS_GPS_USE: 1 → 0
+AHRS_GPS_USE,0
+# Compass: dump 1/1/1 → matikan (heading dari T265)
+COMPASS_ENABLE,0
+COMPASS_USE,0
+COMPASS_USE2,0
+COMPASS_USE3,0
+
+# ========== 2) LANDING MULUS ==========
+# LAND_SPEED: 50 cm/s → 35 cm/s (final dekat tanah; jangan <30)
+LAND_SPEED,35
+# LAND_SPEED_HIGH: 0 (=pakai WPNAV_SPEED_DN) → 100 cm/s (turun awal lebih tenang)
+LAND_SPEED_HIGH,100
+# LAND_ALT_LOW: 1000 cm (10 m) — biarkan; switch ke LAND_SPEED di bawah ini
+# LAND_REPOSITION: 1 — biarkan (boleh stick saat land)
+LAND_REPOSITION,1
+# WPNAV_SPEED_DN: 150 → 100 cm/s (turun ke land point lebih pelan)
+WPNAV_SPEED_DN,100
+
+# ========== 3) MINIM DRIFT / LOST VISION (kecepatan + Loiter) ==========
+# Dump LOIT_SPEED=800 (8 m/s) AGRESIF untuk T265 → turunkan keras
+LOIT_SPEED,200
+# LOIT_BRK_ACCEL: 180 → 50 (brake lebih halus, kurang jerk ke vision)
+LOIT_BRK_ACCEL,50
+# LOIT_BRK_JERK: 300 → 500 (sedikit lebih lembut ramp; dump sudah rendah)
+LOIT_BRK_JERK,500
+# LOIT_ANG_MAX: 18 → 15 (lean lebih kecil = tracking lebih tenang)
+LOIT_ANG_MAX,15
+# LOIT_ACC_MAX: 180 → 100
+LOIT_ACC_MAX,100
+# WPNAV: dump SPEED=250 sudah oke; ACCEL 150 → 100 (transisi lebih mulus)
+WPNAV_SPEED,250
+WPNAV_ACCEL,100
+WPNAV_SPEED_UP,150
+# Yaw slew: 6000 (60°/s) → 3000 (30°/s) — putar pelan = T265 jarang lose track
+ATC_SLEW_YAW,3000
+# Pilot max horizontal (jika ada PILOT_SPEED / max) — dump PILOT_SPEED_DN=0 (=pakai UP)
+PILOT_SPEED_UP,150
+PILOT_SPEED_DN,100
+
+# ========== 4) EKF vision noise ==========
+# KOREKSI 2026-08-07 (dicek langsung ke source ArduPilot, AP_NavEKF3_Measurements.cpp):
+# EK3_VIS_VERR_MIN/MAX di bawah ini TIDAK NGEFEK ke setup T265 kita. Param itu cuma
+# dipakai jalur pesan MAVLink VISION_POSITION_DELTA (body-odometry, field quality 0-100
+# eksplisit) -- T265 kita lewat vision_to_mavros -> mavros vision_pose_estimate plugin
+# kirim VISION_POSITION_ESTIMATE (pose absolut), jalur BEDA yang gak baca param ini sama
+# sekali. Dibiarkan ke-set (harmless, ArduPilot cuma gak pernah baca), TAPI JANGAN
+# dikira ini "menuning kepercayaan EKF ke T265" -- itu keliru.
+EK3_VIS_VERR_MIN,0.15
+EK3_VIS_VERR_MAX,1.0
+#
+# Yang BENERAN nentuin: VISO_POS_M_NSE / VISO_VEL_M_NSE / VISO_YAW_M_NSE (AP_VisualOdom).
+# constrain_float(posErr_dari_covariance, VISO_POS_M_NSE, 100.0) di
+# AP_VisualOdom_IntelT265.cpp -- posErr dari covariance MAVLink, effective floor ke nilai
+# ini. SEBELUM 2026-08-07: vision_to_mavros selalu kirim covariance NOL -> posErr selalu
+# ke-clamp ke floor ini APAPUN kondisi tracking T265. SESUDAH fix (vision_to_mavros.cpp
+# forward covariance asli dari tracker_confidence via /camera/odom/sample, topic
+# pose_cov): floor ini cuma kepake saat confidence PALING BAGUS (High); confidence lebih
+# rendah otomatis dapet posErr lebih besar (EKF lebih skeptis), TANPA perlu ubah param
+# manapun di sini.
+# BELUM di-set eksplisit di file ini -- masih default ArduPilot (POS_M_NSE=0.2m,
+# VEL_M_NSE=0.1m/s, YAW_M_NSE=0.2rad). JANGAN tembak-buta ubah nilainya tanpa data log
+# terbang (langkah #5 rencana remediasi T265, lih. PANDUAN_GPS_OPTFLOW_MTF01.md §1.1) --
+# kalau nanti mau eksplisit di-set, tulis di sini dgn param VISO_POS_M_NSE / dst.
+#
+# FS_EKF_THRESH: 0.8 — biarkan (failsafe EKF); FS_EKF_ACTION=1 (Land) OK
+
+# ========== 5) SERIAL Jetson (sudah benar di dump — dicantumkan untuk cek) ==========
+# SERIAL2_PROTOCOL=2, SERIAL2_BAUD=921, BRD_SER2_RTSCTS=0  → biarkan
+
+# ========== 6) TF-Luna / RNGFND — biarkan aktif (bantu landing alt) ==========
+# RNGFND1_TYPE=25 (TF-Luna), WPNAV_RFND_USE=1  → bagus untuk land; JANGAN matikan
+# EK3_RNG_USE_HGT=-1 berarti rangefinder tidak ganti source tinggi EKF penuh;
+# untuk land, WPNAV_RFND_USE=1 sudah membantu.
+
+# ========== JANGAN UBAH DARI FILE INI (biarkan dump) ==========
+# - ATC rate/angle P (tune sikap) — butuh flight test
+# - PSC_POSXY/VELXY gains — default dump oke; ubah hanya bila oscillate
+# - Kalibrasi compass/accel offsets

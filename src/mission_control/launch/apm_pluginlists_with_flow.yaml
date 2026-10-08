@@ -1,0 +1,21 @@
+# Copy dari mavros/launch/apm_pluginlists.yaml -- px4flow DIHAPUS dari blacklist
+# (ditemukan 2026-09-03: plugin ini blacklist default, itu sebabnya
+# /mavros/px4flow/raw/optical_flow_rad gak pernah ada data walau MTF-01 udah
+# beneran ngirim OPTICAL_FLOW_RAD -- masalahnya di sisi mavros/Jetson, bukan FC).
+# File TERPISAH dari mavros upstream (gak nyentuh package vendor), dipakai lewat
+# apm_with_flow.launch.
+plugin_blacklist:
+# common
+- actuator_control
+- ftp
+- safety_area
+- hil
+# extras
+- altitude
+- debug_value
+- image_pub
+- vibration
+- vision_speed_estimate
+- wheel_odometry
+
+plugin_whitelist: []

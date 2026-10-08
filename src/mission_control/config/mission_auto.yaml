@@ -1,0 +1,18 @@
+# Rute AUTO, navigasi-agnostic (dieksekusi FC SENDIRI, bukan ROS -- GPS+OptFlow
+# sekarang, dulu T265 non-GPS).
+# HANYA aksi geometris — FC tak tahu ArUco:
+#   action: waypoint | drop | land
+#     waypoint = lewati titik (opsional 'hold' detik diam di WP)
+#     drop     = lewati titik LALU DO_SET_SERVO (drop BUTA di koordinat survei)
+#     land     = NAV_LAND di titik itu
+# Nama 'wp' merujuk waypoints.yaml (hasil survei record_waypoint.py).
+# Untuk scan/align berbasis kamera -> pakai mission_seleksi.yaml + mission_d.py (GUIDED).
+#
+# Ini rute UJI NAVIGASI: buktikan drone terbang jalur survei akurat,
+# sebelum menambah kerumitan vision.
+legs:
+  - {wp: wp1,         action: waypoint, hold: 2.0}
+  - {wp: gate_double, action: waypoint}
+  - {wp: wp2,         action: waypoint, hold: 2.0}
+  - {wp: gate_triple, action: waypoint}
+  - {wp: wp3,         action: land}

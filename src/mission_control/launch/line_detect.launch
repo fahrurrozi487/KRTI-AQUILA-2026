@@ -1,0 +1,37 @@
+<launch>
+    <!-- Line-follower: detektor garis hitam putus-putus kamera bawah (WP4->WP5).
+         BELUM dipakai di mission_seleksi.yaml/mission_final.yaml manapun; nunggu
+         konfirmasi panitia soal misi ini (lih. diskusi soal pasal 3.3.4.4 vs
+         Tabel 1 skor). HSV_lo/hi sudah dikalibrasi dari dataset lokal (2026-08-29),
+         bukan berarti sudah jadi bagian misi resmi. -->
+    <arg name="image_topic"   default="/camera_down/image_raw" />
+    <!-- HSV tarp: tuning batch (tune_line.py) dataset line_following/ (462 foto,
+         rumput KERING/COKLAT lokal, 2026-08-29). Split tuning=370/holdout=92
+         (seed 42, sama pola gate_multi_detector._split_dataset). margin H=0 sudah
+         plateau recall 100% di tuning MAUPUN holdout; gak perlu dilebarkan.
+         Rumput hijau (Zoysia matrella, termasuk foto venue IKN sendiri) DICEK
+         AMAN (H jauh di bawah 87), BUKAN sumber false-positive. S_lo dinaikkan
+         25->35 setelah ketemu false-positive REAL dari kerikil/aspal berbayang
+         (bukan rumput). Lih. line_detector.py utk investigasi lengkap +
+         residual risk tiang/papan metal yg BELUM tertangani. -->
+    <arg name="hsv_lo"        default="87,35,0" />
+    <arg name="hsv_hi"        default="107,255,255" />
+    <!-- Fallback venue ke-2 (mis. IKN rumput Zoysia matrella/Manila); KOSONG
+         by default (nonaktif). Isi HANYA setelah tune_line.py divalidasi pakai
+         sample rumput venue itu; JANGAN isi tebakan literatur (resiko nabrak
+         hsv_lo/hi tarp di atas), lih. line_detector.py utk penjelasan. -->
+    <arg name="hsv_lo2"       default="" />
+    <arg name="hsv_hi2"       default="" />
+    <arg name="min_area_frac" default="0.01" />
+    <arg name="publish_debug" default="true" />
+
+    <node pkg="mission_control" type="line_node.py" name="line_node" output="screen">
+        <param name="image_topic"   value="$(arg image_topic)" />
+        <param name="hsv_lo"        value="$(arg hsv_lo)" />
+        <param name="hsv_hi"        value="$(arg hsv_hi)" />
+        <param name="hsv_lo2"       value="$(arg hsv_lo2)" />
+        <param name="hsv_hi2"       value="$(arg hsv_hi2)" />
+        <param name="min_area_frac" value="$(arg min_area_frac)" />
+        <param name="publish_debug" value="$(arg publish_debug)" />
+    </node>
+</launch>

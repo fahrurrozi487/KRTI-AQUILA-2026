@@ -1,0 +1,16 @@
+<launch>
+    <!-- FASE C: detektor gate oranye kamera depan -->
+    <arg name="image_topic"   default="/camera_front/image_raw" />  <!-- dari camera_front.launch -->
+    <arg name="hsv_lo"        default="8,80,80" />
+    <arg name="hsv_hi"        default="30,255,255" />
+    <arg name="min_area_frac" default="0.02" />
+    <arg name="publish_debug" default="true" />
+
+    <node pkg="mission_control" type="gate_node.py" name="gate_node" output="screen">
+        <param name="image_topic"   value="$(arg image_topic)" />
+        <param name="hsv_lo"        value="$(arg hsv_lo)" />
+        <param name="hsv_hi"        value="$(arg hsv_hi)" />
+        <param name="min_area_frac" value="$(arg min_area_frac)" />
+        <param name="publish_debug" value="$(arg publish_debug)" />
+    </node>
+</launch>

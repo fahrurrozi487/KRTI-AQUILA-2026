@@ -1,0 +1,40 @@
+# BABAK SELEKSI — segmen OTONOM setelah pilot sampai WP1.
+#
+# Pilot (manual): takeoff + 2 single gate -> hover di WP1, lalu switch GUIDED.
+# Jalankan: phaseD_mission.launch mission:=seleksi do_takeoff:=false sim_markers:=false
+#
+# action: scan | drop | traverse | yaw | land
+# expected_id: WP=ID (1,2,3,4). Marker lapangan inverted -> aruco invert:=true
+# yaw: direction left = putar kiri (CCW) yaw_deg derajat (default 90)
+#
+# CATATAN GATE (DIUPDATE 2026-08-08): gate_double/gate_triple SEKARANG dianggap
+# gerbang FISIK berlapis (bukan placeholder 2 single gate lagi) -- user kasih
+# ukuran: double = 2 bidang total panjang 1m, triple = 3 bidang total panjang 2m.
+# gate_layers diaktifkan sesuai itu (lih. koordinat titik tengah gerbang di
+# waypoints.yaml, dihitung dari jarak fisik yg dikasih user -- BELUM diverifikasi
+# survei fisik). ArUco 10x10 (arah) = nanti; yaw sementara fixed left 90 deg.
+#
+# ⚠️ WAJIB: gate_layers>1 butuh detektor MULTI-gate (gate_multi_node.py), BUKAN
+# gate_node.py lama (single-gate, gak paham num_openings>1). Jalankan misi dgn:
+#   phaseD_mission.launch mission:=seleksi do_takeoff:=false sim_markers:=false
+#     use_gate_multi:=true use_gate:=false
+#
+# GATE BERLAPIS: gate_layers: N pd leg traverse -> ulangi (center bukaan -> maju
+# pelan lewati bidang) utk tiap lapis. Sinyal transisi antar-lapis = area_frac
+# naik-lalu-turun (BUKAN jarak/waktu tetap), lihat _traverse() di mission_d.py.
+# Lapis TERAKHIR = fly-through penuh (traverse_through_m), sama seperti single-gate.
+#
+# ✅ 2026-09-15: hold_heading: true ditambahkan ke leg traverse gate_double &
+# gate_triple -- transit menuju gate sekarang terbang MUNDUR (tahan heading
+# sekarang, BUKAN muter hadap gate dulu). gate_double: heading yg ditahan =
+# heading sisa dari scan WP1 (lurus depan). gate_triple: heading yg ditahan =
+# hasil leg yaw kiri 90 deg sesudah drop WP2 di bawah. Begitu sampai gate,
+# _traverse() sendiri yang muter hadap gate (gate_yaw dari vektor approach WP
+# sebelumnya->gate) buat centering & fly-through -- TIDAK berubah.
+legs:
+  - {wp: wp1,         action: scan,     expected_id: 1}
+  - {wp: gate_double, action: traverse, gate_layers: 2, gate_source: 2, hold_heading: true}
+  - {wp: wp2,         action: drop,     expected_id: 2}
+  - {wp: wp2,         action: yaw,      yaw_deg: 90, direction: left}
+  - {wp: gate_triple, action: traverse, gate_layers: 3, gate_source: 2, hold_heading: true}
+  - {wp: wp3,         action: land,     expected_id: 3}

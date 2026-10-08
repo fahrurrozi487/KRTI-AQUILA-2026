@@ -1,0 +1,31 @@
+<?xml version='1.0'?>
+<sdf version="1.6">
+  <model name="wp_marker_2">
+    <static>true</static>
+    <link name="link">
+      <pose>0 0 0.001 0 0 0</pose>
+      <visual name="tarp_orange">
+        <!-- backdrop terpal oranye; wp_decode_audit.py::marker_mask() segmentasi
+             marker sbg "BUKAN-oranye" (asumsi background = terpal lapangan asli),
+             tanpa ini seluruh ground_plane abu-abu ikut kebaca "bukan-oranye" jadi
+             komponen terbesar salah (background, bukan marker). -->
+        <geometry><plane><normal>0 0 1</normal><size>1.5 1.5</size></plane></geometry>
+        <material>
+          <ambient>0.655 0.499 0.226 1</ambient>
+          <diffuse>0.655 0.499 0.226 1</diffuse>
+        </material>
+      </visual>
+      <visual name="marker">
+        <pose>0 0 0.001 0 0 0</pose>
+        <geometry><plane><normal>0 0 1</normal><size>0.6 0.6</size></plane></geometry>
+        <material>
+          <script>
+            <uri>model://wp_marker_2/materials/scripts</uri>
+            <uri>model://wp_marker_2/materials/textures</uri>
+            <name>WpMarker/wp2</name>
+          </script>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>

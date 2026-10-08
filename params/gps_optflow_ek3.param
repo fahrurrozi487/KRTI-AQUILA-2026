@@ -1,0 +1,65 @@
+# PROFIL: GPS + MTF01 optical flow (manual + autonomous mission planner)
+# Basis: TF-Luna_GPS_18.13_17-7-26.param (dump GPS asli, sudah terbang)
+# Delta dari profil T265 non-GPS (t265_nongps_ekf3.param).
+# CARA: MP Full Parameter List → Load file ini → Write → REBOOT. JANGAN load saat armed.
+#
+# EK3 source enum (ArduPilot 4.5, dikonfirmasi dari source AP_NavEKF_Source.h):
+#   SourceXY: NONE=0 GPS=3 BEACON=4 OPTFLOW=5 EXTNAV=6
+#   SourceZ : NONE=0 BARO=1 RANGEFINDER=2 GPS=3 EXTNAV=6
+#   SourceYaw: NONE=0 COMPASS=1 GPS=2 EXTNAV=6 GSF=8
+
+# ========== 1) GPS + KOMPAS — WAJIB (dari profil T265: semua dimatikan) ==========
+# GPS1_TYPE: 0 → 1          (nyalakan GPS)
+GPS1_TYPE,1
+# AHRS_GPS_USE: 0 → 1
+AHRS_GPS_USE,1
+# Compass: mati → hidup (heading mission planner; kalibrasi OFS/MOT sudah ada di dump)
+COMPASS_ENABLE,1
+COMPASS_USE,1
+COMPASS_USE2,1
+COMPASS_USE3,0
+
+# ========== 2) EK3 SOURCE SET — GPS primary, OptFlow fallback ==========
+# SRC1 (primary): GPS + Baro + Compass (nilai persis dump asli yang sudah terbukti)
+EK3_SRC1_POSXY,3
+EK3_SRC1_VELXY,3
+EK3_SRC1_POSZ,1
+EK3_SRC1_VELZ,3
+EK3_SRC1_YAW,1
+# SRC2 (fallback otomatis saat GPS lost/degraded): OptFlow + Baro + Compass
+EK3_SRC2_POSXY,5
+EK3_SRC2_VELXY,5
+EK3_SRC2_POSZ,1
+EK3_SRC2_VELZ,1
+EK3_SRC2_YAW,1
+
+# ========== 3) OPTICAL FLOW (MTF01) — WAJIB ==========
+# FLOW_TYPE: 0 → 3          (3=Mateksys MTF01)
+FLOW_TYPE,3
+# FLOW_ORIENT_YAW: 0        (mount menghadap depan; verifikasi arah saat test gerak)
+FLOW_ORIENT_YAW,0
+# FLOW_POS_*: offset MTF01 dari CoG — BELUM diukur, mulai 0.
+#   Kalau ada tanda flow terbalik/meleset saat roll/pitch, ukur & isi (X=+depan, Y=+kanan, Z=+bawah).
+FLOW_POS_X,0
+FLOW_POS_Y,0
+FLOW_POS_Z,0
+
+# ========== 4) EKF3 FUSION FLOW (nilai dump asli sudah benar, dicantumkan untuk cek) ==========
+# EK3_FLOW_USE=1 → fusion flow aktif
+EK3_FLOW_USE,1
+# EK3_SRC_OPTIONS=1 → fuse semua velocity yang dikonfigurasi (GPS + flow sekaligus)
+EK3_SRC_OPTIONS,1
+# EK3_RNG_USE_SPD=2 → pakai rangefinder utk scaling speed flow (TF-Luna, RNGFND1_TYPE=25 sudah ada)
+EK3_RNG_USE_SPD,2
+# EK3_RNG_USE_HGT=-1 → rangefinder TIDAK jadi primary height (biarkan baro; flow hanya butuh scaling)
+EK3_RNG_USE_HGT,-1
+# EK3_FLOW_DELAY=10ms, EK3_FLOW_M_NSE=0.25, EK3_MAX_FLOW=2.5 → biarkan (default dump)
+
+# ========== 5) MATIKAN VIO T265 (profil GPS murni) ==========
+# VISO_TYPE: 2 → 0          (T265 tetap jalan di ROS untuk deteksi ArUco/gate, tapi TIDAK di-fusion EKF)
+VISO_TYPE,0
+
+# ========== JANGAN UBAH DARI FILE INI ==========
+# - ATC/PSC gains, Loiter/WPNAV tuning (ambil dari profil yang mau dipakai terbang)
+# - RNGFND1_* (TF-Luna) — biarkan dari dump
+# - Kalibrasi compass/accel offsets — biarkan dari dump

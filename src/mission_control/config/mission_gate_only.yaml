@@ -1,0 +1,18 @@
+# Uji GATE saja — tanpa ArUco (scan/drop).
+# Dipakai setelah takeoff Stabilize → hover stabil → switch GUIDED,
+# lalu: roslaunch ... mission:=gate_only do_takeoff:=false sim_markers:=false
+#
+# action: traverse | land  (jangan pakai scan/drop di file ini)
+# WP gate = titik TENGAH gerbang (diupdate 2026-08-08, lih. waypoints.yaml --
+# beda dari catatan lama "di depan plane", _goto() terbang persis ke titik ini
+# baru _traverse() vision-guided ambil alih).
+# gate_double = gerbang berlapis fisik (2 bidang) -> gate_layers: 2, gate_source: 2
+# (gate_multi_node.py). WAJIB use_gate_multi:=true use_gate:=false saat launch.
+# (2026-09-04: gate_source ditambahkan, lih. mission_final.yaml -- gate_topic
+# sekarang selalu /gate_node/gate, gate_topic2 selalu /gate_multi_node/gate,
+# dipilih per-leg bukan lewat override global lagi.)
+#
+# traverse_through_m di-set di launch (harus > jarak WP→plane agar tembus).
+legs:
+  - {wp: gate_double, action: traverse, gate_layers: 2, gate_source: 2}
+  - {wp: wp3,         action: land}

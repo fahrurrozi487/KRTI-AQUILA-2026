@@ -1,0 +1,49 @@
+# GUIDED: scan ArUco WP1 -> drop WP2 (align red-box) -> yaw kiri -> scan ArUco
+# WP3 -> WP4 (line_follow) -> gate_single_final (goto, TANPA deteksi gate) ->
+# land WP5. WP1 = titik takeoff (survei wp1 di titik itu juga, lih.
+# record_waypoint.py) -- goto WP1 jadi no-op/gerak kecil.
+#
+# WP2 pakai red-box (bukan ArUco) buat align drop: wp_marker_node.py SUDAH
+# publish WP2 sbg marker id=2 (off_x/off_y) dari detect_wp2_presence() (blob
+# merah), di topic ArucoMarkers YANG SAMA dgn hasil decode ArUco WP1/WP3 --
+# _align_and_drop()/_find_marker() di mission_d.py TIDAK PEDULI sumbernya,
+# jadi TIDAK ADA kode baru: launch pakai use_wp_marker:=true use_aruco:=false
+# (lih. phaseD_aruco_redbox.launch), bukan aruco_detect.launch.
+#
+# ✅ 2026-09-16: diperpanjang sampai WP5/landing pad.
+# - gate_single_final: action: goto (BUKAN traverse) -- eksplisit skip deteksi
+#   gate, cuma lewat ke koordinatnya. TIDAK butuh gate_node.py/use_gate:=true.
+# - WP4: action: line_follow, tapi FLEKSIBEL -- kalau ~use_line_follow:=false
+#   (line_node.py tidak dinyalakan), _line_follow() di mission_d.py otomatis
+#   degradasi jadi goto polos ke WP4 (self._line tetap None selamanya -> tidak
+#   pernah ada koreksi visual, lih. docstring _line_follow()). JADI: tidak
+#   perlu 2 file misi terpisah, cukup toggle use_line_follow di launch tiap
+#   terbang, tergantung mau pakai garis fisik atau tidak sesi itu.
+#
+# ✅ 2026-09-22: dua penyesuaian buat sesi TANPA scan ArUco/gate/line_follow
+# beneran dipakai (drone cuma terbang WP-ke-WP, drop di WP2):
+# - Yaw WP2->WP3 (90 kiri) sekarang bisa di-override arah/besarnya lewat arg
+#   launch (arena punya 2 bentuk, kadang butuh kanan bukan kiri) -- lih.
+#   wp2_yaw_direction/wp2_yaw_deg di phaseD_aruco_redbox.launch. Nilai di leg
+#   yaml (90/left) di bawah cuma DEFAULT kalau arg launch gak diisi.
+# - hold_sec: 3 ditambahkan di WP4/gate_single_final/WP5 -- WP1/WP2/WP3 sudah
+#   otomatis dapat jeda dari scan_timeout/align_timeout meski marker gak
+#   kedeteksi (lih. _scan()/_align_and_drop()), tapi WP4 (line_follow tanpa
+#   garis)/gate_single_final (goto polos)/WP5 gak punya jeda alami sama sekali
+#   -- field ini nyamain biar tetap ada delay yang sebanding tiap sampai WP.
+#
+# Pilot: hover di/near WP1 (titik takeoff), switch GUIDED, lalu launch
+# (do_takeoff:=false). Atau do_takeoff:=true dari darat.
+#
+# Launch:
+#   roslaunch mission_control phaseD_aruco_redbox.launch do_takeoff:=false
+#   # tambah use_line_follow:=false kalau gak mau pakai garis fisik WP3->WP4
+#   # tambah wp2_yaw_direction:=right kalau arena bentuk 2 (belok kanan)
+legs:
+  - {wp: wp1,               action: scan,        expected_id: 1}
+  - {wp: wp2,                action: drop,        expected_id: 2}
+  - {wp: wp2,                action: yaw,         yaw_deg: 90, direction: left}
+  - {wp: wp3,                action: scan,        expected_id: 3}
+  - {wp: wp4,                action: line_follow, hold_sec: 3}
+  - {wp: gate_single_final,  action: goto,        hold_sec: 3}
+  - {wp: wp5,                action: land,        hold_sec: 3}

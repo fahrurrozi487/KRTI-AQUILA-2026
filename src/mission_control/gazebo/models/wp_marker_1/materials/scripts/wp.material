@@ -1,0 +1,14 @@
+material WpMarker/wp1
+{
+  technique
+  {
+    pass
+    {
+      lighting off
+      texture_unit
+      {
+        texture wp1.png
+      }
+    }
+  }
+}
