@@ -2,7 +2,7 @@
 
 Repositori sistem kendali otonom dan komputer visi pendamping (*companion computer*) untuk wahana VTOL pada kompetisi **Kontes Robot Terbang Indonesia (KRTI)**.
 
-Sistem berjalan pada **NVIDIA Jetson Nano B01 (Ubuntu 20.04 / ROS Noetic)** yang terhubung secara serial dengan flight controller **Pixhawk 6C (ArduCopter 4.2.3+, EKF3)**.
+Sistem berjalan pada **NVIDIA Jetson Nano B01 (Ubuntu 20.04 / ROS Noetic)** yang terhubung secara serial dengan flight controller **Pixhawk 6C (ArduCopter 4.6.3, EKF3)**.
 
 ---
 
